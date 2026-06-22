@@ -85,6 +85,7 @@
       <button class="tab active" data-tab="dashboard" onclick="setTab('dashboard')" data-i18n="tabDashboard">今日大盘</button>
       <button class="tab" data-tab="calendar" onclick="setTab('calendar')" data-i18n="tabCalendar">日历</button>
       <button class="tab" data-tab="schedules" onclick="setTab('schedules')" data-i18n="tabSchedules">排班</button>
+      <button class="tab" data-tab="swaps" onclick="setTab('swaps')" data-i18n="tabSwaps">换班池</button>
       <button class="tab" data-tab="declarations" onclick="setTab('declarations')" data-i18n="tabDeclarations">申报</button>
       <button class="tab" data-tab="anchors" onclick="setTab('anchors')" data-i18n="tabAnchors">主播</button>
     </nav>
@@ -92,6 +93,7 @@
     <section id="dashboardView"></section>
     <section id="calendarView" class="hidden"></section>
     <section id="schedulesView" class="hidden"></section>
+    <section id="swapsView" class="hidden"></section>
     <section id="declarationsView" class="hidden"></section>
     <section id="anchorsView" class="hidden"></section>
 
@@ -112,29 +114,29 @@
       zh: {
         title:"主管排班后台", subtitle:"飞书多维表格 + Vercel API + 机器人通知", openAnchor:"打开主播入口",
         startDate:"开始日期", days:"生成天数", keyword:"搜索", status:"状态", generateButton:"生成排班", publishButton:"发布草稿", refreshButton:"刷新数据",
-        tabDashboard:"今日大盘", tabCalendar:"日历", tabSchedules:"排班", tabDeclarations:"申报", tabAnchors:"主播",
+        tabDashboard:"今日大盘", tabCalendar:"日历", tabSchedules:"排班", tabSwaps:"换班池", tabDeclarations:"申报", tabAnchors:"主播",
         healthTitle:"系统状态", empty:"暂无数据", generating:"正在生成...", publishing:"正在发布...", refreshed:"已刷新", published:"已发布草稿", approved:"已同意", rejected:"已拒绝", confirmed:"已确认",
-        stats:["主播","品牌/直播间","待处理申报","排班结果"], risk:"风险班次", dashboardHint:"主管看全盘、生成排班、发布班表、处理申报。",
+        stats:["主播","品牌/直播间","待处理申报","排班结果"], risk:"风险班次", swapHint:"主播互换班次后，系统会自动改写两条排班并通知主管。", dashboardHint:"主管看全盘、生成排班、发布班表、处理申报。",
         columns:{schedule:["日期","班次","时间","主播","品牌","直播间","状态","备注","操作"], declaration:["主播","类型","日期","时间","原因","状态","操作"], anchor:["主播ID","姓名","语言","国家","时区","类目","等级","状态"]},
-        actions:{publish:"发布", confirm:"确认", approve:"同意", reject:"拒绝"}, generated:(count,missing)=>`已生成 ${count} 条，缺人 ${missing} 条`
+        actions:{publish:"发布", confirm:"确认", approve:"同意", reject:"拒绝", forceComplete:"主管完成换班"}, generated:(count,missing)=>`已生成 ${count} 条，缺人 ${missing} 条`
       },
       en: {
         title:"Manager Console", subtitle:"Feishu Base + Vercel API + Bot Notification", openAnchor:"Open anchor portal",
         startDate:"Start date", days:"Days", keyword:"Search", status:"Status", generateButton:"Generate", publishButton:"Publish drafts", refreshButton:"Refresh",
-        tabDashboard:"Dashboard", tabCalendar:"Calendar", tabSchedules:"Schedules", tabDeclarations:"Requests", tabAnchors:"Anchors",
+        tabDashboard:"Dashboard", tabCalendar:"Calendar", tabSchedules:"Schedules", tabSwaps:"Swap pool", tabDeclarations:"Requests", tabAnchors:"Anchors",
         healthTitle:"System Status", empty:"No data", generating:"Generating...", publishing:"Publishing...", refreshed:"Refreshed", published:"Drafts published", approved:"Approved", rejected:"Rejected", confirmed:"Confirmed",
-        stats:["Anchors","Brands / rooms","Pending requests","Schedules"], risk:"Risk shifts", dashboardHint:"Review workload, generate schedules, publish shifts, and process requests.",
+        stats:["Anchors","Brands / rooms","Pending requests","Schedules"], risk:"Risk shifts", swapHint:"When anchors complete a swap, the system rewrites both schedules and notifies the manager.", dashboardHint:"Review workload, generate schedules, publish shifts, and process requests.",
         columns:{schedule:["Date","Shift","Time","Anchor","Brand","Room","Status","Notes","Actions"], declaration:["Anchor","Type","Date","Time","Reason","Status","Actions"], anchor:["ID","Name","Language","Country","TZ","Category","Level","Status"]},
-        actions:{publish:"Publish", confirm:"Confirm", approve:"Approve", reject:"Reject"}, generated:(count,missing)=>`Generated ${count} rows, missing ${missing}`
+        actions:{publish:"Publish", confirm:"Confirm", approve:"Approve", reject:"Reject", forceComplete:"Complete swap"}, generated:(count,missing)=>`Generated ${count} rows, missing ${missing}`
       },
       id: {
         title:"Konsol Supervisor", subtitle:"Feishu Base + Vercel API + Notifikasi Bot", openAnchor:"Buka portal anchor",
         startDate:"Tanggal mulai", days:"Hari", keyword:"Cari", status:"Status", generateButton:"Buat jadwal", publishButton:"Publikasikan draft", refreshButton:"Refresh",
-        tabDashboard:"Dashboard", tabCalendar:"Kalender", tabSchedules:"Jadwal", tabDeclarations:"Permintaan", tabAnchors:"Anchor",
+        tabDashboard:"Dashboard", tabCalendar:"Kalender", tabSchedules:"Jadwal", tabSwaps:"Pool tukar", tabDeclarations:"Permintaan", tabAnchors:"Anchor",
         healthTitle:"Status Sistem", empty:"Belum ada data", generating:"Membuat jadwal...", publishing:"Mempublikasikan...", refreshed:"Data diperbarui", published:"Draft dipublikasikan", approved:"Disetujui", rejected:"Ditolak", confirmed:"Dikonfirmasi",
-        stats:["Anchor","Brand / room","Permintaan pending","Jadwal"], risk:"Shift berisiko", dashboardHint:"Pantau jadwal, buat jadwal, publikasikan shift, dan proses permintaan.",
+        stats:["Anchor","Brand / room","Permintaan pending","Jadwal"], risk:"Shift berisiko", swapHint:"Saat swap selesai, sistem memperbarui dua jadwal dan memberi tahu supervisor.", dashboardHint:"Pantau jadwal, buat jadwal, publikasikan shift, dan proses permintaan.",
         columns:{schedule:["Tanggal","Shift","Waktu","Anchor","Brand","Room","Status","Catatan","Aksi"], declaration:["Anchor","Tipe","Tanggal","Waktu","Alasan","Status","Aksi"], anchor:["ID","Nama","Bahasa","Negara","TZ","Kategori","Level","Status"]},
-        actions:{publish:"Publish", confirm:"Konfirmasi", approve:"Setujui", reject:"Tolak"}, generated:(count,missing)=>`Berhasil membuat ${count} baris, kekurangan ${missing}`
+        actions:{publish:"Publish", confirm:"Konfirmasi", approve:"Setujui", reject:"Tolak", forceComplete:"Selesaikan swap"}, generated:(count,missing)=>`Berhasil membuat ${count} baris, kekurangan ${missing}`
       }
     };
     let currentLang = localStorage.getItem("uiLang") || "zh";
@@ -229,10 +231,35 @@
     function setTab(tab) {
       state.tab = tab;
       document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
-      ["dashboard","calendar","schedules","declarations","anchors"].forEach((name) => {
+      ["dashboard","calendar","schedules","swaps","declarations","anchors"].forEach((name) => {
         $(`${name}View`).classList.toggle("hidden", name !== tab);
       });
       render();
+    }
+    function parseSwapMeta(text) {
+      if (!text || !text.startsWith("SWAP_REQUEST|")) return null;
+      return Object.fromEntries(text.split("|").slice(1).map((part) => {
+        const i = part.indexOf("=");
+        return i > -1 ? [part.slice(0, i), decodeURIComponent(part.slice(i + 1))] : [part, ""];
+      }));
+    }
+    function scheduleLabel(r) {
+      if (!r) return "-";
+      return `${field(r,"日期")} ${field(r,"班次")} ${field(r,"开始时间")}-${field(r,"结束时间")} · ${field(r,"主播姓名")} · ${field(r,"品牌")}`;
+    }
+    function jsArg(value) {
+      return JSON.stringify(String(value || ""));
+    }
+    async function completeSwap(recordId, anchorName) {
+      try {
+        await api("/api/swap", {
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({ action:"accept", declarationRecordId:recordId, anchorName })
+        });
+        toast(t().approved);
+        await loadAll();
+      } catch (e) { toast(e.message); }
     }
     function filteredSchedules() {
       const term = $("keyword").value.trim().toLowerCase();
@@ -309,6 +336,26 @@
     function renderDeclarations() {
       $("declarationsView").innerHTML = `<section class="panel"><h2>${t().tabDeclarations}</h2>${declarationRows(state.declarations.slice(-160).reverse())}</section>`;
     }
+    function renderSwaps() {
+      const swaps = state.declarations
+        .filter((r) => field(r, "申报类型") === "换班")
+        .map((r) => ({ record:r, meta:parseSwapMeta(field(r, "原因")) }))
+        .filter((item) => item.meta)
+        .reverse();
+      $("swapsView").innerHTML = `<section class="panel"><h2>${t().tabSwaps}</h2><p class="muted">${t().swapHint}</p>
+        <div class="table-wrap"><table><thead><tr><th>A</th><th>B</th><th>A 原班</th><th>B 原班</th><th>状态</th><th>操作</th></tr></thead><tbody>
+        ${swaps.map((item) => {
+          const from = state.schedules.find((r) => r.record_id === item.meta.from);
+          const to = state.schedules.find((r) => r.record_id === item.meta.to);
+          const status = field(item.record, "状态");
+          return `<tr>
+            <td>${field(item.record, "主播姓名")}</td><td>${item.meta.target || field(to, "主播姓名")}</td>
+            <td>${scheduleLabel(from)}</td><td>${scheduleLabel(to)}</td><td>${badge(status)}</td>
+            <td><div class="actions">${status === "待处理" ? `<button class="good" onclick="completeSwap(${jsArg(item.record.record_id)},${jsArg(item.meta.target || field(to, "主播姓名"))})">${t().actions.forceComplete}</button><button class="danger" onclick="setDeclarationStatus(${jsArg(item.record.record_id)},'已拒绝')">${t().actions.reject}</button>` : ""}</div></td>
+          </tr>`;
+        }).join("") || `<tr><td colspan="6" class="muted">${t().empty}</td></tr>`}
+        </tbody></table></div></section>`;
+    }
     function renderAnchors() {
       const rows = state.anchors;
       if (!rows.length) return $("anchorsView").innerHTML = `<section class="panel"><p class="muted">${t().empty}</p></section>`;
@@ -318,6 +365,7 @@
       renderDashboard();
       renderCalendar();
       renderSchedules();
+      renderSwaps();
       renderDeclarations();
       renderAnchors();
     }

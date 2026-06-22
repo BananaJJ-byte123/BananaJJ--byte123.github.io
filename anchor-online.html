@@ -15,7 +15,7 @@
     main { padding:14px; }
     h1,h2,h3,p { margin-top:0; } h1 { font-size:22px; margin-bottom:4px; } h2 { font-size:18px; }
     .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:12px; }
-    .tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
     .tab { border:1px solid var(--line); background:#fff; color:#344054; border-radius:6px; padding:10px; font-weight:800; }
     .tab.active { background:#e8efff; color:#1849b8; border-color:#b7c7ff; }
     label { display:grid; gap:6px; font-size:12px; color:#475467; font-weight:800; margin-bottom:10px; }
@@ -36,6 +36,7 @@
     .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--dark); color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; max-width:90vw; }
     .toast.show { opacity:1; }
     .hidden { display:none; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
     @media (max-width:560px){ .grid,.tabs{grid-template-columns:1fr;} .shift-head{display:block;} }
   </style>
 </head>
@@ -65,12 +66,18 @@
 
       <nav class="tabs">
         <button class="tab active" data-tab="schedule" onclick="setTab('schedule')" data-i18n="tabSchedule">我的班表</button>
+        <button class="tab" data-tab="swap" onclick="setTab('swap')" data-i18n="tabSwap">换班池</button>
         <button class="tab" data-tab="request" onclick="setTab('request')" data-i18n="tabRequest">提交申报</button>
       </nav>
 
       <section id="scheduleView" class="card">
         <h2 data-i18n="scheduleTitle">我的近期排班</h2>
         <div id="scheduleList"></div>
+      </section>
+
+      <section id="swapView" class="card hidden">
+        <h2 data-i18n="swapTitle">换班池</h2>
+        <div id="swapPanel"></div>
       </section>
 
       <section id="requestView" class="card hidden">
@@ -91,7 +98,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { schedules: [], tab: "schedule" };
+    const state = { schedules: [], declarations: [], selectedSwapFrom: "", tab: "schedule" };
     const declarationValues = [
       { value:"请假", label:{ zh:"请假", en:"Leave", id:"Cuti" } },
       { value:"换班", label:{ zh:"换班", en:"Shift swap", id:"Tukar shift" } },
@@ -100,24 +107,27 @@
     const i18n = {
       zh: {
         title:"主播自助入口", subtitle:"查看班表，确认班次，提交请假和换班申请", anchorName:"主播姓名", saveName:"保存", refresh:"刷新",
-        tabSchedule:"我的班表", tabRequest:"提交申报", scheduleTitle:"我的近期排班", requestTitle:"提交申请", declarationType:"申报类型",
+        tabSchedule:"我的班表", tabSwap:"换班池", tabRequest:"提交申报", scheduleTitle:"我的近期排班", swapTitle:"换班池", requestTitle:"提交申请", declarationType:"申报类型",
         date:"日期", originalShift:"原班次", startTime:"开始时间", endTime:"结束时间", reason:"原因/备注", submitButton:"提交给主管",
         required:"请填写主播姓名和日期", submitted:"已提交，主管会收到通知", saved:"已保存主播姓名", empty:"暂无排班", confirmed:"班次已确认",
-        confirm:"确认班次", time:"时间", brand:"品牌", room:"直播间", status:"状态"
+        confirm:"确认班次", time:"时间", brand:"品牌", room:"直播间", status:"状态", swap:"发起换班", swapFrom:"我的班次", swapTo:"想换的对方班次",
+        submitSwap:"提交换班请求", incoming:"发给我的请求", outgoing:"我发起的请求", accept:"同意换班", reject:"拒绝", swapSent:"换班请求已发出", swapDone:"换班已完成"
       },
       en: {
         title:"Anchor Self-Service", subtitle:"View schedules, confirm shifts, and submit leave or swap requests", anchorName:"Anchor name", saveName:"Save", refresh:"Refresh",
-        tabSchedule:"My schedule", tabRequest:"Submit request", scheduleTitle:"My Upcoming Schedule", requestTitle:"Submit Request", declarationType:"Request type",
+        tabSchedule:"My schedule", tabSwap:"Swap pool", tabRequest:"Submit request", scheduleTitle:"My Upcoming Schedule", swapTitle:"Swap Pool", requestTitle:"Submit Request", declarationType:"Request type",
         date:"Date", originalShift:"Original shift", startTime:"Start time", endTime:"End time", reason:"Reason / notes", submitButton:"Submit to manager",
         required:"Please enter anchor name and date", submitted:"Submitted. The manager will be notified.", saved:"Anchor name saved", empty:"No schedules yet", confirmed:"Shift confirmed",
-        confirm:"Confirm shift", time:"Time", brand:"Brand", room:"Room", status:"Status"
+        confirm:"Confirm shift", time:"Time", brand:"Brand", room:"Room", status:"Status", swap:"Request swap", swapFrom:"My shift", swapTo:"Target shift",
+        submitSwap:"Send swap request", incoming:"Requests to me", outgoing:"My requests", accept:"Accept swap", reject:"Reject", swapSent:"Swap request sent", swapDone:"Swap completed"
       },
       id: {
         title:"Portal Anchor", subtitle:"Lihat jadwal, konfirmasi shift, dan kirim cuti atau tukar shift", anchorName:"Nama anchor", saveName:"Simpan", refresh:"Refresh",
-        tabSchedule:"Jadwal saya", tabRequest:"Kirim permintaan", scheduleTitle:"Jadwal Saya", requestTitle:"Kirim Permintaan", declarationType:"Jenis permintaan",
+        tabSchedule:"Jadwal saya", tabSwap:"Pool tukar", tabRequest:"Kirim permintaan", scheduleTitle:"Jadwal Saya", swapTitle:"Pool Tukar Shift", requestTitle:"Kirim Permintaan", declarationType:"Jenis permintaan",
         date:"Tanggal", originalShift:"Shift awal", startTime:"Waktu mulai", endTime:"Waktu selesai", reason:"Alasan / catatan", submitButton:"Kirim ke supervisor",
         required:"Mohon isi nama anchor dan tanggal", submitted:"Terkirim. Supervisor akan menerima notifikasi.", saved:"Nama anchor tersimpan", empty:"Belum ada jadwal", confirmed:"Shift dikonfirmasi",
-        confirm:"Konfirmasi shift", time:"Waktu", brand:"Brand", room:"Room", status:"Status"
+        confirm:"Konfirmasi shift", time:"Waktu", brand:"Brand", room:"Room", status:"Status", swap:"Minta tukar", swapFrom:"Shift saya", swapTo:"Shift tujuan",
+        submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", accept:"Setujui tukar", reject:"Tolak", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai"
       }
     };
     let currentLang = localStorage.getItem("uiLang") || "zh";
@@ -136,6 +146,7 @@
       $("type").innerHTML = declarationValues.map((item) => `<option value="${item.value}">${item.label[lang]}</option>`).join("");
       $("type").value = selected;
       renderSchedule();
+      renderSwap();
     }
     function toast(text) {
       const el = $("toast"); el.textContent = text; el.classList.add("show");
@@ -156,13 +167,20 @@
       state.tab = tab;
       document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
       $("scheduleView").classList.toggle("hidden", tab !== "schedule");
+      $("swapView").classList.toggle("hidden", tab !== "swap");
       $("requestView").classList.toggle("hidden", tab !== "request");
+      renderSwap();
     }
     async function loadAll() {
       try {
-        const data = await api("/api/data?type=schedules");
-        state.schedules = data.records;
+        const [schedules, declarations] = await Promise.all([
+          api("/api/data?type=schedules"),
+          api("/api/data?type=declarations")
+        ]);
+        state.schedules = schedules.records;
+        state.declarations = declarations.records;
         renderSchedule();
+        renderSwap();
       } catch (e) { toast(e.message); }
     }
     function badge(status) {
@@ -190,9 +208,95 @@
             </div>
             <div>${badge(status)}</div>
           </div>
-          ${status !== "已确认" ? `<button class="good" onclick="confirmShift('${r.record_id}')">${t().confirm}</button>` : ""}
+          <div class="actions">
+            ${status !== "已确认" ? `<button class="good" onclick="confirmShift('${r.record_id}')">${t().confirm}</button>` : ""}
+            <button class="secondary" onclick="openSwap('${r.record_id}')">${t().swap}</button>
+          </div>
         </article>`;
       }).join("");
+    }
+    function parseSwapMeta(text) {
+      if (!text || !text.startsWith("SWAP_REQUEST|")) return null;
+      return Object.fromEntries(text.split("|").slice(1).map((part) => {
+        const i = part.indexOf("=");
+        return i > -1 ? [part.slice(0, i), decodeURIComponent(part.slice(i + 1))] : [part, ""];
+      }));
+    }
+    function scheduleLabel(r) {
+      return `${field(r,"日期")} ${field(r,"班次")} ${field(r,"开始时间")}-${field(r,"结束时间")} · ${field(r,"主播姓名")} · ${field(r,"品牌")}`;
+    }
+    function openSwap(recordId) {
+      state.selectedSwapFrom = recordId;
+      setTab("swap");
+    }
+    function renderSwap() {
+      if (!$("swapPanel")) return;
+      const name = $("anchorName").value.trim();
+      const mine = state.schedules.filter((r) => field(r, "主播姓名") === name);
+      const others = state.schedules.filter((r) => field(r, "主播姓名") && field(r, "主播姓名") !== name);
+      const requests = state.declarations
+        .filter((r) => field(r, "申报类型") === "换班")
+        .map((r) => ({ record:r, meta:parseSwapMeta(field(r, "原因")) }))
+        .filter((item) => item.meta);
+      const incoming = requests.filter((item) => field(item.record, "状态") === "待处理" && item.meta.target === name);
+      const outgoing = requests.filter((item) => field(item.record, "主播姓名") === name);
+      const fromOptions = mine.map((r) => `<option value="${r.record_id}" ${state.selectedSwapFrom === r.record_id ? "selected" : ""}>${scheduleLabel(r)}</option>`).join("");
+      const toOptions = others.map((r) => `<option value="${r.record_id}">${scheduleLabel(r)}</option>`).join("");
+      $("swapPanel").innerHTML = `
+        <label>${t().swapFrom}<select id="swapFrom">${fromOptions}</select></label>
+        <label>${t().swapTo}<select id="swapTo">${toOptions}</select></label>
+        <label>${t().reason}<textarea id="swapReason" placeholder="${t().reason}"></textarea></label>
+        <button onclick="submitSwapRequest()">${t().submitSwap}</button>
+        <div class="shift"><h3>${t().incoming}</h3>${incoming.map(renderSwapRequest).join("") || `<p class="muted">${t().empty}</p>`}</div>
+        <div class="shift"><h3>${t().outgoing}</h3>${outgoing.map(renderSwapRequest).join("") || `<p class="muted">${t().empty}</p>`}</div>`;
+    }
+    function renderSwapRequest(item) {
+      const from = state.schedules.find((r) => r.record_id === item.meta.from);
+      const to = state.schedules.find((r) => r.record_id === item.meta.to);
+      const status = field(item.record, "状态");
+      const isTarget = item.meta.target === $("anchorName").value.trim();
+      return `<div class="shift">
+        <p class="small muted">${field(item.record, "主播姓名")} -> ${item.meta.target} · ${badge(status)}</p>
+        <p><b>${from ? scheduleLabel(from) : item.meta.from}</b></p>
+        <p><b>${to ? scheduleLabel(to) : item.meta.to}</b></p>
+        ${isTarget && status === "待处理" ? `<div class="actions"><button class="good" onclick="acceptSwap('${item.record.record_id}')">${t().accept}</button><button class="secondary" onclick="rejectSwap('${item.record.record_id}')">${t().reject}</button></div>` : ""}
+      </div>`;
+    }
+    async function submitSwapRequest() {
+      try {
+        const fromScheduleId = $("swapFrom")?.value;
+        const toScheduleId = $("swapTo")?.value;
+        if (!fromScheduleId || !toScheduleId) return toast(t().empty);
+        await api("/api/swap", {
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({ action:"request", anchorName:$("anchorName").value.trim(), fromScheduleId, toScheduleId, reason:$("swapReason").value })
+        });
+        toast(t().swapSent);
+        await loadAll();
+      } catch (e) { toast(e.message); }
+    }
+    async function acceptSwap(declarationRecordId) {
+      try {
+        await api("/api/swap", {
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({ action:"accept", declarationRecordId, anchorName:$("anchorName").value.trim() })
+        });
+        toast(t().swapDone);
+        await loadAll();
+      } catch (e) { toast(e.message); }
+    }
+    async function rejectSwap(declarationRecordId) {
+      try {
+        await api("/api/swap", {
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({ action:"reject", declarationRecordId })
+        });
+        toast(t().submitted);
+        await loadAll();
+      } catch (e) { toast(e.message); }
     }
     async function confirmShift(recordId) {
       try {
