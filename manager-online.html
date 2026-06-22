@@ -3,42 +3,59 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>主管排班后台 - 飞书版</title>
+  <title>主管排班后台</title>
   <style>
-    :root { --bg:#f5f7fb; --card:#fff; --ink:#111827; --muted:#667085; --line:#d8dee8; --blue:#2563eb; --green:#16845b; --amber:#b7791f; --red:#c24141; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: Arial, "Microsoft YaHei", sans-serif; color:var(--ink); background:var(--bg); }
-    header { background:#101828; color:#fff; padding:16px 22px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
-    .header-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-    .lang { width:auto; min-width:132px; border-color:#344054; background:#fff; color:#111827; }
-    h1,h2,p { margin-top:0; } h1 { font-size:20px; margin-bottom:4px; } h2 { font-size:18px; }
+    :root {
+      --bg:#f5f7fb; --card:#fff; --ink:#111827; --muted:#667085; --line:#d8dee8;
+      --blue:#2563eb; --green:#16845b; --amber:#b7791f; --red:#c24141; --dark:#101828;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,"Microsoft YaHei",sans-serif; color:var(--ink); background:var(--bg); }
+    header { background:var(--dark); color:#fff; padding:16px 22px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    h1,h2,h3,p { margin-top:0; } h1 { font-size:20px; margin-bottom:4px; } h2 { font-size:18px; } h3 { font-size:15px; margin-bottom:8px; }
     button,input,select { font:inherit; }
     button { border:1px solid var(--line); background:#fff; border-radius:6px; padding:9px 12px; cursor:pointer; min-height:38px; }
     button.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
-    input,select { border:1px solid var(--line); border-radius:6px; padding:9px 10px; width:100%; }
+    button.danger { color:var(--red); border-color:#ffd0d0; background:#fff8f8; }
+    button.good { color:var(--green); border-color:#bfe8d3; background:#f1fbf6; }
+    input,select { border:1px solid var(--line); border-radius:6px; padding:9px 10px; width:100%; background:#fff; }
     label { display:grid; gap:6px; font-size:12px; color:#475467; font-weight:700; }
-    main { padding:16px; max-width:1280px; margin:0 auto; }
+    main { padding:16px; max-width:1320px; margin:0 auto; }
     .muted { color:var(--muted); } .small { font-size:12px; }
-    .grid { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:12px; }
-    .panel,.stat { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:14px; }
-    .stat b { display:block; font-size:26px; margin-top:4px; }
+    .header-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .lang { width:auto; min-width:132px; border-color:#344054; }
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px; }
+    .tab { border-color:var(--line); color:#344054; }
+    .tab.active { background:#e8efff; color:#1849b8; border-color:#b7c7ff; font-weight:800; }
+    .panel,.stat,.day { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:14px; }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .two { display:grid; grid-template-columns:1.2fr .8fr; gap:12px; }
     .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+    .stat b { display:block; font-size:26px; margin-top:4px; }
+    .badge { display:inline-flex; align-items:center; border-radius:999px; padding:3px 8px; font-size:12px; font-weight:800; }
+    .green { background:#e8f7ef; color:#106b49; } .amber { background:#fff4df; color:#99610f; }
+    .red { background:#ffe8e8; color:#a83333; } .blue { background:#e8efff; color:#1849b8; }
     .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:8px; background:#fff; }
-    table { border-collapse:collapse; width:100%; min-width:760px; }
-    th,td { border-bottom:1px solid var(--line); padding:9px; text-align:left; white-space:nowrap; font-size:13px; }
+    table { border-collapse:collapse; width:100%; min-width:900px; }
+    th,td { border-bottom:1px solid var(--line); padding:9px; text-align:left; white-space:nowrap; font-size:13px; vertical-align:middle; }
     th { background:#f8fafc; color:#475467; }
-    .badge { display:inline-flex; border-radius:999px; padding:3px 8px; font-size:12px; font-weight:800; }
-    .green { background:#e8f7ef; color:#106b49; } .amber { background:#fff4df; color:#99610f; } .red { background:#ffe8e8; color:#a83333; } .blue { background:#e8efff; color:#1849b8; }
-    .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#101828; color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; }
+    .actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .actions button { min-height:30px; padding:5px 8px; font-size:12px; }
+    .calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
+    .day { min-height:150px; margin:0; padding:10px; }
+    .day h3 { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:8px; }
+    .shift { border:1px solid var(--line); border-radius:6px; padding:7px; margin-bottom:6px; background:#fafcff; font-size:12px; }
+    .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--dark); color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; max-width:92vw; z-index:20; }
     .toast.show { opacity:1; }
-    @media (max-width:900px){ .grid{grid-template-columns:1fr 1fr;} header{align-items:flex-start;} }
-    @media (max-width:620px){ .grid{grid-template-columns:1fr;} }
+    .hidden { display:none; }
+    @media (max-width:960px){ .grid,.two{grid-template-columns:1fr 1fr;} .calendar{grid-template-columns:1fr 1fr;} header{align-items:flex-start;} }
+    @media (max-width:640px){ .grid,.two,.calendar{grid-template-columns:1fr;} header{display:block;} .header-actions{justify-content:flex-start; margin-top:12px;} }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>主管排班后台</h1>
+      <h1 data-i18n="title">主管排班后台</h1>
       <p class="small" style="color:#cbd5e1;margin:0;" data-i18n="subtitle">飞书多维表格 + Vercel API + 机器人通知</p>
     </div>
     <div class="header-actions">
@@ -50,121 +67,87 @@
       <button onclick="location.href='./anchor-online.html'" data-i18n="openAnchor">打开主播入口</button>
     </div>
   </header>
+
   <main>
     <section class="panel">
-      <h2 data-i18n="generateTitle">排班生成</h2>
       <div class="toolbar">
         <label><span data-i18n="startDate">开始日期</span><input id="startDate" type="date"></label>
         <label><span data-i18n="days">生成天数</span><input id="days" type="number" min="1" max="31" value="7"></label>
-        <button class="primary" onclick="generateSchedule()" data-i18n="generateButton">生成排班并通知</button>
+        <label><span data-i18n="keyword">搜索</span><input id="keyword" oninput="render()" placeholder="主播/品牌/直播间"></label>
+        <label><span data-i18n="status">状态</span><select id="statusFilter" onchange="render()"><option value="">All</option><option>草稿</option><option>已发布</option><option>已确认</option><option>缺人</option></select></label>
+        <button class="primary" onclick="generateSchedule()" data-i18n="generateButton">生成排班</button>
+        <button onclick="publishDrafts()" data-i18n="publishButton">发布草稿</button>
         <button onclick="loadAll()" data-i18n="refreshButton">刷新数据</button>
-        <button onclick="sendSummary()" data-i18n="notifyButton">发送今日提醒</button>
       </div>
     </section>
-    <section class="grid">
-      <div class="stat"><span class="muted" data-i18n="anchors">主播</span><b id="anchorCount">-</b></div>
-      <div class="stat"><span class="muted" data-i18n="brands">品牌/直播间</span><b id="brandCount">-</b></div>
-      <div class="stat"><span class="muted" data-i18n="declarations">申报</span><b id="declarationCount">-</b></div>
-      <div class="stat"><span class="muted" data-i18n="schedules">排班结果</span><b id="scheduleCount">-</b></div>
-    </section>
-    <section class="panel">
-      <h2 data-i18n="scheduleTitle">排班结果</h2>
-      <div id="schedules"></div>
-    </section>
-    <section class="panel">
-      <h2 data-i18n="declarationTitle">主播申报</h2>
-      <div id="declarations"></div>
-    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard" onclick="setTab('dashboard')" data-i18n="tabDashboard">今日大盘</button>
+      <button class="tab" data-tab="calendar" onclick="setTab('calendar')" data-i18n="tabCalendar">日历</button>
+      <button class="tab" data-tab="schedules" onclick="setTab('schedules')" data-i18n="tabSchedules">排班</button>
+      <button class="tab" data-tab="declarations" onclick="setTab('declarations')" data-i18n="tabDeclarations">申报</button>
+      <button class="tab" data-tab="anchors" onclick="setTab('anchors')" data-i18n="tabAnchors">主播</button>
+    </nav>
+
+    <section id="dashboardView"></section>
+    <section id="calendarView" class="hidden"></section>
+    <section id="schedulesView" class="hidden"></section>
+    <section id="declarationsView" class="hidden"></section>
+    <section id="anchorsView" class="hidden"></section>
+
     <section class="panel">
       <h2 data-i18n="healthTitle">系统状态</h2>
       <pre id="health" class="small muted"></pre>
     </section>
   </main>
+
   <div class="toast" id="toast"></div>
+
   <script>
     const $ = (id) => document.getElementById(id);
+    const state = { anchors: [], brands: [], templates: [], declarations: [], schedules: [], tab: "dashboard" };
     const field = (r, name) => r.fields?.[name] ?? "";
+    const today = () => new Date().toISOString().slice(0, 10);
     const i18n = {
       zh: {
-        subtitle: "飞书多维表格 + Vercel API + 机器人通知",
-        openAnchor: "打开主播入口",
-        generateTitle: "排班生成",
-        startDate: "开始日期",
-        days: "生成天数",
-        generateButton: "生成排班并通知",
-        refreshButton: "刷新数据",
-        notifyButton: "发送今日提醒",
-        anchors: "主播",
-        brands: "品牌/直播间",
-        declarations: "申报",
-        schedules: "排班结果",
-        scheduleTitle: "排班结果",
-        declarationTitle: "主播申报",
-        healthTitle: "系统状态",
-        empty: "暂无数据",
-        generating: "正在生成...",
-        generated: (count, missing) => `已生成 ${count} 条，缺人 ${missing} 条`,
-        notified: "通知已发送",
-        scheduleColumns: ["日期","班次","开始时间","结束时间","主播姓名","品牌","直播间","状态","备注"],
-        declarationColumns: ["主播姓名","申报类型","日期","开始时间","结束时间","原因","状态"]
+        title:"主管排班后台", subtitle:"飞书多维表格 + Vercel API + 机器人通知", openAnchor:"打开主播入口",
+        startDate:"开始日期", days:"生成天数", keyword:"搜索", status:"状态", generateButton:"生成排班", publishButton:"发布草稿", refreshButton:"刷新数据",
+        tabDashboard:"今日大盘", tabCalendar:"日历", tabSchedules:"排班", tabDeclarations:"申报", tabAnchors:"主播",
+        healthTitle:"系统状态", empty:"暂无数据", generating:"正在生成...", publishing:"正在发布...", refreshed:"已刷新", published:"已发布草稿", approved:"已同意", rejected:"已拒绝", confirmed:"已确认",
+        stats:["主播","品牌/直播间","待处理申报","排班结果"], risk:"风险班次", dashboardHint:"主管看全盘、生成排班、发布班表、处理申报。",
+        columns:{schedule:["日期","班次","时间","主播","品牌","直播间","状态","备注","操作"], declaration:["主播","类型","日期","时间","原因","状态","操作"], anchor:["主播ID","姓名","语言","国家","时区","类目","等级","状态"]},
+        actions:{publish:"发布", confirm:"确认", approve:"同意", reject:"拒绝"}, generated:(count,missing)=>`已生成 ${count} 条，缺人 ${missing} 条`
       },
       en: {
-        subtitle: "Feishu Base + Vercel API + Bot Notification",
-        openAnchor: "Open anchor portal",
-        generateTitle: "Schedule Generator",
-        startDate: "Start date",
-        days: "Days",
-        generateButton: "Generate and notify",
-        refreshButton: "Refresh data",
-        notifyButton: "Send today's reminder",
-        anchors: "Anchors",
-        brands: "Brands / rooms",
-        declarations: "Requests",
-        schedules: "Schedules",
-        scheduleTitle: "Schedule Results",
-        declarationTitle: "Anchor Requests",
-        healthTitle: "System Status",
-        empty: "No data",
-        generating: "Generating...",
-        generated: (count, missing) => `Generated ${count} rows, missing ${missing}`,
-        notified: "Notification sent",
-        scheduleColumns: ["Date","Shift","Start","End","Anchor","Brand","Room","Status","Notes"],
-        declarationColumns: ["Anchor","Type","Date","Start","End","Reason","Status"]
+        title:"Manager Console", subtitle:"Feishu Base + Vercel API + Bot Notification", openAnchor:"Open anchor portal",
+        startDate:"Start date", days:"Days", keyword:"Search", status:"Status", generateButton:"Generate", publishButton:"Publish drafts", refreshButton:"Refresh",
+        tabDashboard:"Dashboard", tabCalendar:"Calendar", tabSchedules:"Schedules", tabDeclarations:"Requests", tabAnchors:"Anchors",
+        healthTitle:"System Status", empty:"No data", generating:"Generating...", publishing:"Publishing...", refreshed:"Refreshed", published:"Drafts published", approved:"Approved", rejected:"Rejected", confirmed:"Confirmed",
+        stats:["Anchors","Brands / rooms","Pending requests","Schedules"], risk:"Risk shifts", dashboardHint:"Review workload, generate schedules, publish shifts, and process requests.",
+        columns:{schedule:["Date","Shift","Time","Anchor","Brand","Room","Status","Notes","Actions"], declaration:["Anchor","Type","Date","Time","Reason","Status","Actions"], anchor:["ID","Name","Language","Country","TZ","Category","Level","Status"]},
+        actions:{publish:"Publish", confirm:"Confirm", approve:"Approve", reject:"Reject"}, generated:(count,missing)=>`Generated ${count} rows, missing ${missing}`
       },
       id: {
-        subtitle: "Feishu Base + Vercel API + Notifikasi Bot",
-        openAnchor: "Buka portal anchor",
-        generateTitle: "Generator Jadwal",
-        startDate: "Tanggal mulai",
-        days: "Jumlah hari",
-        generateButton: "Buat jadwal dan notifikasi",
-        refreshButton: "Refresh data",
-        notifyButton: "Kirim pengingat hari ini",
-        anchors: "Anchor",
-        brands: "Brand / room",
-        declarations: "Permintaan",
-        schedules: "Jadwal",
-        scheduleTitle: "Hasil Jadwal",
-        declarationTitle: "Permintaan Anchor",
-        healthTitle: "Status Sistem",
-        empty: "Belum ada data",
-        generating: "Membuat jadwal...",
-        generated: (count, missing) => `Berhasil membuat ${count} baris, kekurangan ${missing}`,
-        notified: "Notifikasi terkirim",
-        scheduleColumns: ["Tanggal","Shift","Mulai","Selesai","Anchor","Brand","Room","Status","Catatan"],
-        declarationColumns: ["Anchor","Tipe","Tanggal","Mulai","Selesai","Alasan","Status"]
+        title:"Konsol Supervisor", subtitle:"Feishu Base + Vercel API + Notifikasi Bot", openAnchor:"Buka portal anchor",
+        startDate:"Tanggal mulai", days:"Hari", keyword:"Cari", status:"Status", generateButton:"Buat jadwal", publishButton:"Publikasikan draft", refreshButton:"Refresh",
+        tabDashboard:"Dashboard", tabCalendar:"Kalender", tabSchedules:"Jadwal", tabDeclarations:"Permintaan", tabAnchors:"Anchor",
+        healthTitle:"Status Sistem", empty:"Belum ada data", generating:"Membuat jadwal...", publishing:"Mempublikasikan...", refreshed:"Data diperbarui", published:"Draft dipublikasikan", approved:"Disetujui", rejected:"Ditolak", confirmed:"Dikonfirmasi",
+        stats:["Anchor","Brand / room","Permintaan pending","Jadwal"], risk:"Shift berisiko", dashboardHint:"Pantau jadwal, buat jadwal, publikasikan shift, dan proses permintaan.",
+        columns:{schedule:["Tanggal","Shift","Waktu","Anchor","Brand","Room","Status","Catatan","Aksi"], declaration:["Anchor","Tipe","Tanggal","Waktu","Alasan","Status","Aksi"], anchor:["ID","Nama","Bahasa","Negara","TZ","Kategori","Level","Status"]},
+        actions:{publish:"Publish", confirm:"Konfirmasi", approve:"Setujui", reject:"Tolak"}, generated:(count,missing)=>`Berhasil membuat ${count} baris, kekurangan ${missing}`
       }
     };
     let currentLang = localStorage.getItem("uiLang") || "zh";
-    $("startDate").value = new Date().toISOString().slice(0, 10);
+
+    $("startDate").value = today();
+    function t() { return i18n[currentLang]; }
     function setLang(lang) {
       currentLang = lang;
       localStorage.setItem("uiLang", lang);
       $("lang").value = lang;
       document.documentElement.lang = lang === "id" ? "id" : lang === "en" ? "en" : "zh-CN";
-      document.querySelectorAll("[data-i18n]").forEach((el) => {
-        el.textContent = i18n[lang][el.dataset.i18n];
-      });
+      document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t()[el.dataset.i18n]; });
+      render();
     }
     function toast(text) {
       const el = $("toast"); el.textContent = text; el.classList.add("show");
@@ -176,35 +159,24 @@
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
     }
-    function table(records, columns) {
-      if (!records.length) return `<p class="muted">${i18n[currentLang].empty}</p>`;
-      return `<div class="table-wrap"><table><thead><tr>${columns.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>${records.map(r => `<tr>${columns.map(c => `<td>${field(r,c.field)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-    }
-    function localizedColumns(fields, labels) {
-      return fields.map((fieldName, index) => ({ field: fieldName, label: labels[index] }));
+    async function updateRecord(type, recordId, fields, notifyText) {
+      return api("/api/update", {
+        method:"POST",
+        headers:{ "content-type":"application/json" },
+        body:JSON.stringify({ type, recordId, fields, notifyText })
+      });
     }
     async function loadAll() {
       try {
-        const [health, anchors, brands, declarations, schedules] = await Promise.all([
-          api("/api/health"),
-          api("/api/data?type=anchors"),
-          api("/api/data?type=brands"),
-          api("/api/data?type=declarations"),
-          api("/api/data?type=schedules")
+        const [health, anchors, brands, templates, declarations, schedules] = await Promise.all([
+          api("/api/health"), api("/api/data?type=anchors"), api("/api/data?type=brands"), api("/api/data?type=templates"),
+          api("/api/data?type=declarations"), api("/api/data?type=schedules")
         ]);
+        state.anchors = anchors.records; state.brands = brands.records; state.templates = templates.records;
+        state.declarations = declarations.records; state.schedules = schedules.records;
         $("health").textContent = JSON.stringify(health.env, null, 2);
-        $("anchorCount").textContent = anchors.records.length;
-        $("brandCount").textContent = brands.records.length;
-        $("declarationCount").textContent = declarations.records.length;
-        $("scheduleCount").textContent = schedules.records.length;
-        $("schedules").innerHTML = table(
-          schedules.records.slice(-80).reverse(),
-          localizedColumns(["日期","班次","开始时间","结束时间","主播姓名","品牌","直播间","状态","备注"], i18n[currentLang].scheduleColumns)
-        );
-        $("declarations").innerHTML = table(
-          declarations.records.slice(-80).reverse(),
-          localizedColumns(["主播姓名","申报类型","日期","开始时间","结束时间","原因","状态"], i18n[currentLang].declarationColumns)
-        );
+        render();
+        toast(t().refreshed);
       } catch (e) {
         toast(e.message);
         $("health").textContent = e.stack || e.message;
@@ -212,25 +184,142 @@
     }
     async function generateSchedule() {
       try {
-        toast(i18n[currentLang].generating);
+        toast(t().generating);
         const data = await api("/api/generate", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ startDate: $("startDate").value, days: $("days").value })
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({ startDate:$("startDate").value, days:$("days").value })
         });
-        toast(i18n[currentLang].generated(data.count, data.missing));
+        toast(t().generated(data.count, data.missing));
         await loadAll();
       } catch (e) { toast(e.message); }
     }
-    async function sendSummary() {
+    async function publishDrafts() {
+      const drafts = state.schedules.filter((r) => field(r, "状态") === "草稿");
+      if (!drafts.length) return toast(t().empty);
       try {
-        await api("/api/notify", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ type: "主管提醒", text: "排班系统提醒：请查看今日排班、缺人班次和主播申报。" })
+        toast(t().publishing);
+        await api("/api/update", {
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({
+            type:"schedules",
+            records:drafts.map((r) => ({ record_id:r.record_id, fields:{ "状态":"已发布" } })),
+            notifyText:`已发布 ${drafts.length} 条排班。`
+          })
         });
-        toast(i18n[currentLang].notified);
+        toast(t().published);
+        await loadAll();
       } catch (e) { toast(e.message); }
+    }
+    async function setScheduleStatus(recordId, status) {
+      try {
+        await updateRecord("schedules", recordId, { "状态":status }, `排班状态更新为：${status}`);
+        toast(status === "已确认" ? t().confirmed : t().published);
+        await loadAll();
+      } catch (e) { toast(e.message); }
+    }
+    async function setDeclarationStatus(recordId, status) {
+      try {
+        await updateRecord("declarations", recordId, { "状态":status }, `主播申报已${status}`);
+        toast(status === "已同意" ? t().approved : t().rejected);
+        await loadAll();
+      } catch (e) { toast(e.message); }
+    }
+    function setTab(tab) {
+      state.tab = tab;
+      document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
+      ["dashboard","calendar","schedules","declarations","anchors"].forEach((name) => {
+        $(`${name}View`).classList.toggle("hidden", name !== tab);
+      });
+      render();
+    }
+    function filteredSchedules() {
+      const term = $("keyword").value.trim().toLowerCase();
+      const status = $("statusFilter").value;
+      return state.schedules.filter((r) => {
+        const haystack = ["主播姓名","品牌","直播间","班次","日期"].map((key) => field(r, key)).join(" ").toLowerCase();
+        return (!term || haystack.includes(term)) && (!status || field(r, "状态") === status);
+      });
+    }
+    function badge(status) {
+      const cls = status === "已确认" ? "green" : status === "已发布" ? "blue" : status === "缺人" ? "red" : "amber";
+      return `<span class="badge ${cls}">${status || "-"}</span>`;
+    }
+    function scheduleRows(records) {
+      if (!records.length) return `<p class="muted">${t().empty}</p>`;
+      return `<div class="table-wrap"><table><thead><tr>${t().columns.schedule.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${records.map((r) => {
+        const status = field(r, "状态");
+        return `<tr>
+          <td>${field(r,"日期")}</td><td>${field(r,"班次")}</td><td>${field(r,"开始时间")}-${field(r,"结束时间")}</td>
+          <td>${field(r,"主播姓名") || "-"}</td><td>${field(r,"品牌")}</td><td>${field(r,"直播间")}</td><td>${badge(status)}</td><td>${field(r,"备注")}</td>
+          <td><div class="actions">
+            ${status === "草稿" ? `<button onclick="setScheduleStatus('${r.record_id}','已发布')">${t().actions.publish}</button>` : ""}
+            ${status !== "已确认" ? `<button class="good" onclick="setScheduleStatus('${r.record_id}','已确认')">${t().actions.confirm}</button>` : ""}
+          </div></td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+    }
+    function declarationRows(records) {
+      if (!records.length) return `<p class="muted">${t().empty}</p>`;
+      return `<div class="table-wrap"><table><thead><tr>${t().columns.declaration.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${records.map((r) => {
+        const status = field(r, "状态");
+        return `<tr>
+          <td>${field(r,"主播姓名")}</td><td>${field(r,"申报类型")}</td><td>${field(r,"日期")}</td><td>${field(r,"开始时间")}-${field(r,"结束时间")}</td>
+          <td>${field(r,"原因")}</td><td>${badge(status)}</td>
+          <td><div class="actions">
+            ${status === "待处理" ? `<button class="good" onclick="setDeclarationStatus('${r.record_id}','已同意')">${t().actions.approve}</button><button class="danger" onclick="setDeclarationStatus('${r.record_id}','已拒绝')">${t().actions.reject}</button>` : ""}
+          </div></td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+    }
+    function renderDashboard() {
+      const pending = state.declarations.filter((r) => field(r, "状态") === "待处理");
+      const risk = state.schedules.filter((r) => !field(r, "主播姓名") || field(r, "状态") === "缺人");
+      const todayRows = state.schedules.filter((r) => field(r, "日期") === today()).slice(0, 8);
+      $("dashboardView").innerHTML = `
+        <section class="grid">
+          <div class="stat"><span class="muted">${t().stats[0]}</span><b>${state.anchors.length}</b></div>
+          <div class="stat"><span class="muted">${t().stats[1]}</span><b>${state.brands.length}</b></div>
+          <div class="stat"><span class="muted">${t().stats[2]}</span><b>${pending.length}</b></div>
+          <div class="stat"><span class="muted">${t().stats[3]}</span><b>${state.schedules.length}</b></div>
+        </section>
+        <section class="two">
+          <div class="panel"><h2>${t().tabDashboard}</h2><p class="muted">${t().dashboardHint}</p>${scheduleRows(todayRows)}</div>
+          <div class="panel"><h2>${t().risk}</h2>${scheduleRows(risk.slice(0, 8))}</div>
+        </section>`;
+    }
+    function renderCalendar() {
+      const start = new Date(`${$("startDate").value}T00:00:00`);
+      const days = Math.min(14, Math.max(1, Number($("days").value || 7)));
+      const rows = filteredSchedules();
+      const cells = [];
+      for (let i = 0; i < days; i += 1) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const date = d.toISOString().slice(0, 10);
+        const shifts = rows.filter((r) => field(r, "日期") === date);
+        cells.push(`<div class="day"><h3><span>${date}</span><span class="badge blue">${shifts.length}</span></h3>${shifts.slice(0, 6).map((r) => `<div class="shift"><b>${field(r,"班次")}</b> ${field(r,"开始时间")}-${field(r,"结束时间")}<br>${field(r,"主播姓名") || "-"} · ${field(r,"品牌")}<br>${badge(field(r,"状态"))}</div>`).join("") || `<p class="muted small">${t().empty}</p>`}</div>`);
+      }
+      $("calendarView").innerHTML = `<section class="calendar">${cells.join("")}</section>`;
+    }
+    function renderSchedules() {
+      $("schedulesView").innerHTML = `<section class="panel"><h2>${t().tabSchedules}</h2>${scheduleRows(filteredSchedules().slice(-160).reverse())}</section>`;
+    }
+    function renderDeclarations() {
+      $("declarationsView").innerHTML = `<section class="panel"><h2>${t().tabDeclarations}</h2>${declarationRows(state.declarations.slice(-160).reverse())}</section>`;
+    }
+    function renderAnchors() {
+      const rows = state.anchors;
+      if (!rows.length) return $("anchorsView").innerHTML = `<section class="panel"><p class="muted">${t().empty}</p></section>`;
+      $("anchorsView").innerHTML = `<section class="panel"><h2>${t().tabAnchors}</h2><div class="table-wrap"><table><thead><tr>${t().columns.anchor.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr><td>${field(r,"主播ID")}</td><td>${field(r,"姓名")}</td><td>${field(r,"语言")}</td><td>${field(r,"国家")}</td><td>${field(r,"时区")}</td><td>${field(r,"擅长类目")}</td><td>${field(r,"等级")}</td><td>${badge(field(r,"状态"))}</td></tr>`).join("")}</tbody></table></div></section>`;
+    }
+    function render() {
+      renderDashboard();
+      renderCalendar();
+      renderSchedules();
+      renderDeclarations();
+      renderAnchors();
     }
     setLang(currentLang);
     loadAll();

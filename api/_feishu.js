@@ -128,6 +128,28 @@ async function createRecords(type, fieldsList) {
   return created;
 }
 
+async function updateRecords(type, recordsList) {
+  if (!recordsList.length) return [];
+  const appToken = getBaseToken();
+  const tableId = getTableId(type);
+  const chunks = [];
+  for (let i = 0; i < recordsList.length; i += 200) chunks.push(recordsList.slice(i, i + 200));
+  const updated = [];
+  for (const chunk of chunks) {
+    const data = await feishuFetch(`/bitable/v1/apps/${appToken}/tables/${tableId}/records/batch_update`, {
+      method: "POST",
+      body: JSON.stringify({
+        records: chunk.map((record) => ({
+          record_id: record.record_id,
+          fields: record.fields || {}
+        }))
+      })
+    });
+    updated.push(...(data.data?.records || []));
+  }
+  return updated;
+}
+
 async function sendBotText(text) {
   const webhook = process.env.FEISHU_BOT_WEBHOOK_URL;
   if (!webhook) return { skipped: true, reason: "FEISHU_BOT_WEBHOOK_URL not set" };
@@ -160,6 +182,7 @@ module.exports = {
   requireEnv,
   listRecords,
   createRecords,
+  updateRecords,
   sendBotText,
   handleError,
   tableEnvMap
