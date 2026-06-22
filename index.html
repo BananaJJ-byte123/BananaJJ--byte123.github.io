@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海外主播排班助手</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #d8dee8;
+      --blue: #2563eb;
+      --green: #16845b;
+      --card: #ffffff;
+      --shadow: 0 18px 44px rgba(16, 24, 40, .12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    header {
+      background: #101828;
+      color: #fff;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: #fff;
+      color: #101828;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 { font-size: 18px; margin-bottom: 3px; }
+    header p { color: #cbd5e1; margin-bottom: 0; font-size: 12px; }
+    main {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+      padding: 28px 18px;
+    }
+    .notice {
+      border: 1px solid #b9c9ff;
+      background: #eef4ff;
+      color: #24458f;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      min-height: 270px;
+      display: grid;
+      align-content: space-between;
+      gap: 16px;
+    }
+    .card h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .card p {
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 0;
+    }
+    ul {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    a.button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border-radius: 6px;
+      padding: 10px 14px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+    }
+    a.button.green { background: var(--green); }
+    a.button.ghost {
+      background: #fff;
+      color: #344054;
+      border: 1px solid var(--line);
+    }
+    .footer {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    @media (max-width: 760px) {
+      header { align-items: flex-start; }
+      .grid { grid-template-columns: 1fr; }
+      .card { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">AS</div>
+      <div>
+        <h1>海外主播排班助手</h1>
+        <p>Feishu H5 + Feishu Base + Bot Notification</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      当前推荐使用在线工作版：页面部署在 Vercel，数据写入飞书多维表格，关键动作通过飞书机器人通知。原本地演示版仍保留，方便你离线演示和对比。
+    </div>
+
+    <section class="grid">
+      <article class="card">
+        <div>
+          <h2>主管 / 管理员入口</h2>
+          <p>用于排班员和管理员查看主播申报、生成排班、发布通知，并读取飞书多维表格中的共享数据。</p>
+          <ul>
+            <li>读取主播名单、品牌、班次模板</li>
+            <li>按日期生成排班结果</li>
+            <li>查看请假/换班/空闲申报</li>
+            <li>向飞书群发送通知</li>
+          </ul>
+        </div>
+        <div class="actions">
+          <a class="button" href="/manager">进入在线主管端</a>
+          <a class="button ghost" href="./manager.html">本地演示版</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div>
+          <h2>主播入口</h2>
+          <p>用于主播在飞书内查看个人班表，实时提交请假、换班和空闲时间申报。</p>
+          <ul>
+            <li>提交申报后写入飞书多维表格</li>
+            <li>主管端实时可见</li>
+            <li>支持 English / Bahasa Indonesia 使用场景</li>
+            <li>适合放到飞书 H5 应用主页或群公告</li>
+          </ul>
+        </div>
+        <div class="actions">
+          <a class="button green" href="/anchor">进入在线主播端</a>
+          <a class="button ghost" href="./anchor.html">本地演示版</a>
+        </div>
+      </article>
+    </section>
+
+    <p class="footer">
+      部署前需要在 Vercel 配置飞书自建应用密钥、多维表格 app_token、各数据表 table_id，以及可选的飞书机器人 webhook。
+    </p>
+  </main>
+</body>
+</html>

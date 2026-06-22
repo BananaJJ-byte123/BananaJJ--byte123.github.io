@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>主播自助入口 - 飞书版</title>
+  <style>
+    :root { --bg:#f5f7fb; --card:#fff; --ink:#111827; --muted:#667085; --line:#d8dee8; --blue:#2563eb; --green:#16845b; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Arial,"Microsoft YaHei",sans-serif; }
+    .shell { max-width:520px; min-height:100vh; margin:0 auto; background:#f7f8fb; display:grid; grid-template-rows:auto 1fr; }
+    header { background:#101828; color:#fff; padding:18px; }
+    .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .lang { width:auto; min-width:132px; border-color:#344054; background:#fff; color:#111827; padding:7px 9px; }
+    h1,h2,p { margin-top:0; } h1 { font-size:22px; margin-bottom:4px; }
+    main { padding:14px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:12px; }
+    label { display:grid; gap:6px; font-size:12px; color:#475467; font-weight:800; margin-bottom:10px; }
+    input,select,textarea,button { font:inherit; }
+    input,select,textarea { border:1px solid var(--line); border-radius:6px; padding:10px 12px; width:100%; background:#fff; }
+    textarea { min-height:90px; resize:vertical; }
+    button { border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:6px; padding:11px 14px; width:100%; cursor:pointer; font-weight:800; }
+    button.secondary { border-color:var(--line); background:#fff; color:var(--ink); }
+    .muted { color:var(--muted); } .small { font-size:12px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:8px; }
+    table { width:100%; border-collapse:collapse; min-width:520px; background:#fff; }
+    th,td { padding:8px; border-bottom:1px solid var(--line); white-space:nowrap; font-size:12px; text-align:left; }
+    th { background:#f8fafc; color:#475467; }
+    .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#101828; color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; max-width:90vw; }
+    .toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="topbar">
+        <div>
+          <h1 id="title" data-i18n="title">主播自助入口</h1>
+          <p class="small" style="color:#cbd5e1;margin:0;" data-i18n="subtitle">提交空闲时间、请假和换班申请</p>
+        </div>
+        <select id="lang" class="lang" onchange="setLang(this.value)" aria-label="Language">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+          <option value="id">Bahasa</option>
+        </select>
+      </div>
+    </header>
+    <main>
+      <section class="card">
+        <h2 data-i18n="submitTitle">提交申请</h2>
+        <label><span data-i18n="anchorName">主播姓名</span><input id="anchorName" placeholder="例如 Siti Rahma / Amanda Lee"></label>
+        <label><span data-i18n="declarationType">申报类型</span><select id="type"></select></label>
+        <div class="grid">
+          <label><span data-i18n="date">日期</span><input id="date" type="date"></label>
+          <label><span data-i18n="originalShift">原班次</span><input id="originalShift" placeholder="可选"></label>
+          <label><span data-i18n="startTime">开始时间</span><input id="startTime" type="time" value="09:00"></label>
+          <label><span data-i18n="endTime">结束时间</span><input id="endTime" type="time" value="12:00"></label>
+        </div>
+        <label><span data-i18n="reason">原因/备注</span><textarea id="reason" placeholder="请简单说明原因"></textarea></label>
+        <button onclick="submitDeclaration()" data-i18n="submitButton">提交给主管</button>
+      </section>
+      <section class="card">
+        <h2 data-i18n="myScheduleTitle">我的近期排班</h2>
+        <p class="muted small" data-i18n="myScheduleHint">输入主播姓名后点击刷新，会从飞书多维表格读取排班结果。</p>
+        <button class="secondary" onclick="loadMySchedules()" data-i18n="refreshMine">刷新我的排班</button>
+        <br><br>
+        <div id="schedules"></div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const declarationValues = [
+      { value: "请假", label: { zh: "请假", en: "Leave", id: "Cuti" } },
+      { value: "换班", label: { zh: "换班", en: "Shift swap", id: "Tukar shift" } },
+      { value: "空闲时间", label: { zh: "空闲时间", en: "Available time", id: "Waktu tersedia" } }
+    ];
+    const i18n = {
+      zh: {
+        title: "主播自助入口",
+        subtitle: "提交空闲时间、请假和换班申请",
+        submitTitle: "提交申请",
+        anchorName: "主播姓名",
+        declarationType: "申报类型",
+        date: "日期",
+        originalShift: "原班次",
+        startTime: "开始时间",
+        endTime: "结束时间",
+        reason: "原因/备注",
+        submitButton: "提交给主管",
+        myScheduleTitle: "我的近期排班",
+        myScheduleHint: "输入主播姓名后点击刷新，会从飞书多维表格读取排班结果。",
+        refreshMine: "刷新我的排班",
+        required: "请填写主播姓名和日期",
+        submitted: "已提交，主管会收到通知",
+        empty: "暂无排班",
+        headers: ["日期", "时间", "品牌", "直播间", "状态"]
+      },
+      en: {
+        title: "Anchor Self-Service",
+        subtitle: "Submit availability, leave, and shift swap requests",
+        submitTitle: "Submit Request",
+        anchorName: "Anchor name",
+        declarationType: "Request type",
+        date: "Date",
+        originalShift: "Original shift",
+        startTime: "Start time",
+        endTime: "End time",
+        reason: "Reason / notes",
+        submitButton: "Submit to manager",
+        myScheduleTitle: "My Upcoming Schedule",
+        myScheduleHint: "Enter your anchor name, then refresh to read schedules from Feishu Base.",
+        refreshMine: "Refresh my schedule",
+        required: "Please enter anchor name and date",
+        submitted: "Submitted. The manager will be notified.",
+        empty: "No schedules yet",
+        headers: ["Date", "Time", "Brand", "Room", "Status"]
+      },
+      id: {
+        title: "Portal Anchor",
+        subtitle: "Kirim ketersediaan, cuti, dan permintaan tukar shift",
+        submitTitle: "Kirim Permintaan",
+        anchorName: "Nama anchor",
+        declarationType: "Jenis permintaan",
+        date: "Tanggal",
+        originalShift: "Shift awal",
+        startTime: "Waktu mulai",
+        endTime: "Waktu selesai",
+        reason: "Alasan / catatan",
+        submitButton: "Kirim ke supervisor",
+        myScheduleTitle: "Jadwal Saya",
+        myScheduleHint: "Masukkan nama anchor lalu refresh untuk membaca jadwal dari Feishu Base.",
+        refreshMine: "Refresh jadwal saya",
+        required: "Mohon isi nama anchor dan tanggal",
+        submitted: "Terkirim. Supervisor akan menerima notifikasi.",
+        empty: "Belum ada jadwal",
+        headers: ["Tanggal", "Waktu", "Brand", "Room", "Status"]
+      }
+    };
+    let currentLang = localStorage.getItem("uiLang") || "zh";
+    document.getElementById("date").value = new Date().toISOString().slice(0,10);
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem("uiLang", lang);
+      $("lang").value = lang;
+      document.documentElement.lang = lang === "id" ? "id" : lang === "en" ? "en" : "zh-CN";
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = i18n[lang][el.dataset.i18n];
+      });
+      const selected = $("type").value || "请假";
+      $("type").innerHTML = declarationValues.map((item) => `<option value="${item.value}">${item.label[lang]}</option>`).join("");
+      $("type").value = selected;
+    }
+    function toast(text) {
+      const el = $("toast"); el.textContent = text; el.classList.add("show");
+      clearTimeout(window.__toast); window.__toast = setTimeout(() => el.classList.remove("show"), 1800);
+    }
+    async function api(path, options) {
+      const res = await fetch(path, options);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "API error");
+      return data;
+    }
+    async function submitDeclaration() {
+      try {
+        const body = {
+          anchorName: $("anchorName").value.trim(),
+          type: $("type").value,
+          date: $("date").value,
+          startTime: $("startTime").value,
+          endTime: $("endTime").value,
+          originalShift: $("originalShift").value,
+          reason: $("reason").value
+        };
+        if (!body.anchorName || !body.date) return toast(i18n[currentLang].required);
+        await api("/api/declarations", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        toast(i18n[currentLang].submitted);
+        $("reason").value = "";
+        await loadMySchedules();
+      } catch (e) { toast(e.message); }
+    }
+    function field(r, name) { return r.fields?.[name] || ""; }
+    async function loadMySchedules() {
+      try {
+        const name = $("anchorName").value.trim();
+        const data = await api("/api/data?type=schedules");
+        const rows = data.records.filter(r => !name || field(r, "主播姓名") === name).slice(-30).reverse();
+        if (!rows.length) {
+          $("schedules").innerHTML = `<p class="muted">${i18n[currentLang].empty}</p>`;
+          return;
+        }
+        const headers = i18n[currentLang].headers;
+        $("schedules").innerHTML = `<div class="table-wrap"><table><thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr><td>${field(r,"日期")}</td><td>${field(r,"开始时间")}-${field(r,"结束时间")}</td><td>${field(r,"品牌")}</td><td>${field(r,"直播间")}</td><td>${field(r,"状态")}</td></tr>`).join("")}</tbody></table></div>`;
+      } catch (e) { toast(e.message); }
+    }
+    setLang(currentLang);
+  </script>
+</body>
+</html>

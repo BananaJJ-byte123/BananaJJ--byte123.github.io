@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>主播排班与换班系统</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #d8dee8;
+      --blue: #2563eb;
+      --green: #16845b;
+      --amber: #b7791f;
+      --red: #c24141;
+      --shadow: 0 16px 34px rgba(16, 24, 40, .12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 10px 12px;
+      min-height: 40px;
+      cursor: pointer;
+    }
+    button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    button.success { background: var(--green); border-color: var(--green); color: #fff; }
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+    label { display: grid; gap: 6px; font-size: 12px; color: #475467; font-weight: 700; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin-bottom: 10px; }
+    h3 { font-size: 15px; margin-bottom: 8px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .shell {
+      max-width: 460px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: #f7f8fb;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      box-shadow: var(--shadow);
+    }
+    .top {
+      background: #101828;
+      color: #fff;
+      padding: 16px;
+    }
+    .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .lang { display: flex; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; overflow: hidden; flex: none; }
+    .lang button {
+      border: 0;
+      border-radius: 0;
+      color: #fff;
+      background: transparent;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .lang button.active { background: #fff; color: #101828; }
+    .account {
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .content { padding: 14px; overflow: auto; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      margin-bottom: 12px;
+    }
+    .shift {
+      display: grid;
+      grid-template-columns: 66px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .time {
+      background: #e8efff;
+      color: #1849b8;
+      border-radius: 8px;
+      padding: 8px 6px;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.25;
+    }
+    .badge {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .blue { background: #e8efff; color: #1849b8; }
+    .green { background: #e8f7ef; color: #106b49; }
+    .amber { background: #fff4df; color: #99610f; }
+    .red { background: #ffe8e8; color: #a83333; }
+    .gray { background: #eef1f5; color: #4b5563; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .tabs {
+      height: 64px;
+      background: #fff;
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .tab {
+      border: 0;
+      border-radius: 0;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      padding: 6px;
+      color: #667085;
+      font-size: 11px;
+    }
+    .tab.active { color: var(--blue); font-weight: 900; }
+    .empty {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--muted);
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: #101828;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      box-shadow: var(--shadow);
+      max-width: 88vw;
+    }
+    .toast.show { opacity: 1; }
+    @media (min-width: 700px) {
+      body { padding: 18px; }
+      .shell { border-radius: 20px; min-height: calc(100vh - 36px); overflow: hidden; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div class="top-row">
+        <div>
+          <h1 id="title">My Schedule</h1>
+          <div class="muted small" id="subtitle" style="color:#cbd5e1">Anchor self-service</div>
+        </div>
+        <div class="lang">
+          <button id="enBtn" class="active" onclick="setLang('en')">EN</button>
+          <button id="idBtn" onclick="setLang('id')">ID</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="account">
+      <label><span id="accountLabel">Anchor account</span><select id="anchorSelect" onchange="setAnchor(this.value)"></select></label>
+    </section>
+
+    <section class="content" id="content"></section>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="schedule" onclick="setTab('schedule')">📅<span id="tabSchedule">Schedule</span></button>
+      <button class="tab" data-tab="swap" onclick="setTab('swap')">↔<span id="tabSwap">Swap</span></button>
+      <button class="tab" data-tab="leave" onclick="setTab('leave')">＋<span id="tabLeave">Leave</span></button>
+      <button class="tab" data-tab="messages" onclick="setTab('messages')">●<span id="tabMessages">Messages</span></button>
+    </nav>
+  </main>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const DB_KEY = "anchor_scheduler_mvp_db_v1";
+    let db = null;
+    let anchorId = null;
+    let tab = "schedule";
+    let lang = "en";
+    let lastDbRaw = "";
+
+    const copy = {
+      en: {
+        title: "My Schedule",
+        subtitle: "Anchor self-service",
+        account: "Anchor account",
+        schedule: "Schedule",
+        swap: "Swap",
+        leave: "Leave",
+        messages: "Messages",
+        noDb: "No database found. Open the PC management system first.",
+        noShift: "No shifts found.",
+        confirmed: "Confirmed",
+        putToPool: "Put to Pool",
+        swapPool: "Swap Pool",
+        takeShift: "Take Shift",
+        leaveRequest: "Leave Request",
+        reason: "Reason",
+        submitLeave: "Submit Leave",
+        eligible: "Eligible",
+        details: "Details"
+      },
+      id: {
+        title: "Jadwal Saya",
+        subtitle: "Layanan mandiri host",
+        account: "Akun host",
+        schedule: "Jadwal",
+        swap: "Tukar",
+        leave: "Cuti",
+        messages: "Pesan",
+        noDb: "Database belum ada. Buka sistem PC terlebih dahulu.",
+        noShift: "Tidak ada shift.",
+        confirmed: "Dikonfirmasi",
+        putToPool: "Masuk Pool",
+        swapPool: "Pool Tukar Shift",
+        takeShift: "Ambil Shift",
+        leaveRequest: "Ajukan Cuti",
+        reason: "Alasan",
+        submitLeave: "Ajukan Cuti",
+        eligible: "Memenuhi Syarat",
+        details: "Detail"
+      }
+    };
+
+    function t(key) { return copy[lang][key] || key; }
+    function uid(prefix) { return prefix + "_" + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4); }
+    function loadDb() {
+      const raw = localStorage.getItem(DB_KEY);
+      if (!raw) {
+        db = null;
+        lastDbRaw = "";
+        return false;
+      }
+      if (raw !== lastDbRaw) {
+        db = JSON.parse(raw);
+        lastDbRaw = raw;
+        if (!anchorId && db.anchors && db.anchors.length) {
+          const active = db.anchors.find(a => a.status === "active") || db.anchors[0];
+          anchorId = active.id;
+        }
+        return true;
+      }
+      return false;
+    }
+    function saveDb() {
+      db.updatedAt = new Date().toISOString();
+      lastDbRaw = JSON.stringify(db);
+      localStorage.setItem(DB_KEY, lastDbRaw);
+    }
+    function getAnchor(id) { return db.anchors.find(x => x.id === id); }
+    function getBrand(id) { return db.brands.find(x => x.id === id); }
+    function getRoom(id) { return db.rooms.find(x => x.id === id); }
+    function getTemplate(id) { return db.templates.find(x => x.id === id); }
+    function statusBadge(status) {
+      const cls = { draft:"gray", published:"blue", confirmed:"green", swap_pending:"amber", leave_pending:"red", open:"red", approved:"green", needs_review:"amber", pending:"amber" }[status] || "gray";
+      return `<span class="badge ${cls}">${status}</span>`;
+    }
+    function shiftsOnDate(anchorId, date) {
+      return db.schedules.filter(s => s.anchorId === anchorId && s.date === date && s.status !== "cancelled");
+    }
+    function hasConflict(nextAnchorId, date, templateId, scheduleId) {
+      const template = getTemplate(templateId);
+      const sameDay = db.schedules.filter(s => s.anchorId === nextAnchorId && s.date === date && s.id !== scheduleId && s.status !== "cancelled");
+      if (sameDay.length >= db.rules.maxDailyShifts) return "daily max";
+      const start = Number(template.start.slice(0, 2));
+      for (const item of sameDay) {
+        const other = getTemplate(item.templateId);
+        const gap = Math.abs(start - Number(other.start.slice(0, 2)));
+        if (gap < db.rules.minGapHours) return "short gap";
+      }
+      return "";
+    }
+    function renderShell() {
+      document.getElementById("title").textContent = t("title");
+      document.getElementById("subtitle").textContent = t("subtitle");
+      document.getElementById("accountLabel").textContent = t("account");
+      document.getElementById("tabSchedule").textContent = t("schedule");
+      document.getElementById("tabSwap").textContent = t("swap");
+      document.getElementById("tabLeave").textContent = t("leave");
+      document.getElementById("tabMessages").textContent = t("messages");
+      document.getElementById("enBtn").classList.toggle("active", lang === "en");
+      document.getElementById("idBtn").classList.toggle("active", lang === "id");
+      document.querySelectorAll(".tab").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
+    }
+    function renderAnchorOptions() {
+      const select = document.getElementById("anchorSelect");
+      if (!db) {
+        select.innerHTML = "";
+        return;
+      }
+      select.innerHTML = db.anchors.filter(a => a.status === "active").map(a => `<option value="${a.id}" ${a.id === anchorId ? "selected" : ""}>${a.name} · ${a.language}</option>`).join("");
+    }
+    function render() {
+      renderShell();
+      if (!db) {
+        document.getElementById("content").innerHTML = `<div class="card empty">${t("noDb")}</div>`;
+        return;
+      }
+      renderAnchorOptions();
+      if (tab === "schedule") renderSchedule();
+      if (tab === "swap") renderSwap();
+      if (tab === "leave") renderLeave();
+      if (tab === "messages") renderMessages();
+    }
+    function shiftCard(schedule, actions) {
+      const brand = getBrand(schedule.brandId);
+      const room = getRoom(schedule.roomId);
+      const temp = getTemplate(schedule.templateId);
+      return `<div class="card">
+        <div class="shift">
+          <div class="time">${temp.start}<br>${temp.end}</div>
+          <div>
+            <h3>${schedule.date}</h3>
+            <p class="muted small">${brand.name} · ${room.name}</p>
+            ${statusBadge(schedule.status)}
+          </div>
+        </div>
+        ${actions || ""}
+      </div>`;
+    }
+    function renderSchedule() {
+      const mine = db.schedules.filter(s => s.anchorId === anchorId).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 12);
+      document.getElementById("content").innerHTML = mine.map(s => shiftCard(s, `
+        <div class="actions">
+          <button onclick="confirmShift('${s.id}')">${t("confirmed")}</button>
+          <button onclick="putToPool('${s.id}')">${t("putToPool")}</button>
+        </div>
+      `)).join("") || `<div class="card empty">${t("noShift")}</div>`;
+    }
+    function renderSwap() {
+      const open = db.swaps.filter(sw => sw.status === "open" && sw.fromAnchorId !== anchorId);
+      document.getElementById("content").innerHTML = `<div class="card"><h2>${t("swapPool")}</h2><p class="muted small">Auto-check daily limit and gap rules.</p></div>` +
+        (open.map(sw => {
+          const s = db.schedules.find(x => x.id === sw.scheduleId);
+          const brand = getBrand(s.brandId);
+          const temp = getTemplate(s.templateId);
+          const from = getAnchor(sw.fromAnchorId);
+          const conflict = hasConflict(anchorId, s.date, s.templateId, s.id);
+          return `<div class="card">
+            <h3>${s.date} ${temp.start}-${temp.end}</h3>
+            <p class="muted small">${brand.name} · ${from ? from.name : "-"}</p>
+            <span class="badge ${conflict ? "amber" : "green"}">${conflict || t("eligible")}</span>
+            <div class="actions">
+              <button class="success" onclick="takeSwap('${sw.id}')">${t("takeShift")}</button>
+              <button onclick="toast('${t("details")}')">${t("details")}</button>
+            </div>
+          </div>`;
+        }).join("") || `<div class="card empty">${t("noShift")}</div>`);
+    }
+    function renderLeave() {
+      const mine = db.schedules.filter(s => s.anchorId === anchorId).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 20);
+      document.getElementById("content").innerHTML = `<div class="card">
+        <h2>${t("leaveRequest")}</h2>
+        <label>Shift<select id="leaveSchedule">${mine.map(s => {
+          const temp = getTemplate(s.templateId);
+          const brand = getBrand(s.brandId);
+          return `<option value="${s.id}">${s.date} ${temp.start} · ${brand.name}</option>`;
+        }).join("")}</select></label>
+        <br>
+        <label>${t("reason")}<input id="leaveReason" value="Personal reason"></label>
+        <div class="actions"><button class="primary" onclick="submitLeave()">${t("submitLeave")}</button><button onclick="setTab('schedule')">Cancel</button></div>
+      </div>`;
+    }
+    function renderMessages() {
+      const messages = db.messages.filter(m => !m.anchorId || m.anchorId === anchorId).slice(-12).reverse();
+      document.getElementById("content").innerHTML = `<div class="card"><h2>${t("messages")}</h2></div>` +
+        (messages.map(m => `<div class="card"><h3>${m.type}</h3><p class="muted small">${m.text}</p></div>`).join("") || `<div class="card empty">No messages.</div>`);
+    }
+    function setLang(next) {
+      lang = next;
+      render();
+    }
+    function setTab(next) {
+      tab = next;
+      render();
+    }
+    function setAnchor(id) {
+      anchorId = id;
+      render();
+    }
+    function confirmShift(scheduleId) {
+      const s = db.schedules.find(x => x.id === scheduleId);
+      s.status = "confirmed";
+      db.messages.push({ id: uid("msg"), anchorId, type: "confirm", text: "Shift confirmed: " + s.date, createdAt: new Date().toISOString() });
+      saveDb();
+      toast(t("confirmed"));
+      render();
+    }
+    function putToPool(scheduleId) {
+      const s = db.schedules.find(x => x.id === scheduleId);
+      if (!db.swaps.find(sw => sw.scheduleId === scheduleId && sw.status === "open")) {
+        db.swaps.push({ id: uid("swap"), type: "open_market", scheduleId, fromAnchorId: s.anchorId, toAnchorId: null, status: "open", reason: "Anchor requested swap", createdAt: new Date().toISOString() });
+      }
+      s.status = "swap_pending";
+      db.messages.push({ id: uid("msg"), type: "swap", text: "Swap pool opened for " + s.date, createdAt: new Date().toISOString() });
+      saveDb();
+      toast(t("putToPool"));
+      render();
+    }
+    function takeSwap(swapId) {
+      const sw = db.swaps.find(x => x.id === swapId);
+      const s = db.schedules.find(x => x.id === sw.scheduleId);
+      const conflict = hasConflict(anchorId, s.date, s.templateId, s.id);
+      sw.toAnchorId = anchorId;
+      sw.validation = conflict || "passed";
+      if (conflict) {
+        sw.status = "needs_review";
+        toast("Needs supervisor review");
+      } else if (db.rules.autoApproveSwap) {
+        sw.status = "approved";
+        s.anchorId = anchorId;
+        s.status = "published";
+        toast("Swap approved");
+      } else {
+        sw.status = "pending";
+        toast("Submitted");
+      }
+      saveDb();
+      render();
+    }
+    function submitLeave() {
+      const scheduleId = document.getElementById("leaveSchedule").value;
+      const reason = document.getElementById("leaveReason").value || "Personal reason";
+      const s = db.schedules.find(x => x.id === scheduleId);
+      s.status = "leave_pending";
+      db.leaves.push({ id: uid("leave"), anchorId, scheduleId, reason, status: "pending", createdAt: new Date().toISOString() });
+      db.swaps.push({ id: uid("swap"), type: "leave_cover", scheduleId, fromAnchorId: anchorId, toAnchorId: null, status: "open", reason: "Leave cover needed", createdAt: new Date().toISOString() });
+      db.messages.push({ id: uid("msg"), anchorId, type: "leave", text: "Leave request submitted: " + s.date, createdAt: new Date().toISOString() });
+      saveDb();
+      toast(t("submitLeave"));
+      setTab("schedule");
+    }
+    function toast(text) {
+      const el = document.getElementById("toast");
+      el.textContent = text;
+      el.classList.add("show");
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+    }
+    window.addEventListener("storage", (event) => {
+      if (event.key === DB_KEY) {
+        loadDb();
+        render();
+      }
+    });
+    setInterval(() => {
+      if (loadDb()) render();
+    }, 1500);
+    window.addEventListener("load", () => {
+      loadDb();
+      render();
+    });
+  </script>
+</body>
+</html>
