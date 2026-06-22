@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海外主播排班助手</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #d8dee8;
+      --blue: #2563eb;
+      --green: #16845b;
+      --card: #ffffff;
+      --shadow: 0 18px 44px rgba(16, 24, 40, .12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    header {
+      background: #101828;
+      color: #fff;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: #fff;
+      color: #101828;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 { font-size: 18px; margin-bottom: 3px; }
+    header p { color: #cbd5e1; margin-bottom: 0; font-size: 12px; }
+    main {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+      padding: 28px 18px;
+    }
+    .notice {
+      border: 1px solid #f0d58a;
+      background: #fff8e6;
+      color: #7a4f0f;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      min-height: 260px;
+      display: grid;
+      align-content: space-between;
+      gap: 16px;
+    }
+    .card h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .card p {
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 0;
+    }
+    ul {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    a.button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border-radius: 6px;
+      padding: 10px 14px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+    }
+    a.button.green {
+      background: var(--green);
+    }
+    .footer {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    @media (max-width: 760px) {
+      header { align-items: flex-start; }
+      .grid { grid-template-columns: 1fr; }
+      .card { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo">AS</div>
+        <div>
+          <h1>海外主播排班助手</h1>
+          <p>Feishu H5 App · Supervisor / Anchor Entrances</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="notice">
+        当前版本是飞书 H5 静态应用版，用于在飞书内演示主管和主播入口。数据仍保存在浏览器本地缓存中；多人共享数据需要下一步接入飞书多维表格或妙搭数据库。
+      </div>
+
+      <section class="grid">
+        <article class="card">
+          <div>
+            <h2>主管 / 管理员入口</h2>
+            <p>用于排班员和管理员处理排班、换班、请假、主播资料和规则配置。</p>
+            <ul>
+              <li>今日大盘</li>
+              <li>月排班与日期切换</li>
+              <li>搜索主播并手动排班</li>
+              <li>自定义员工上班时间</li>
+              <li>换班/请假审批</li>
+            </ul>
+          </div>
+          <a class="button" href="./manager.html">进入主管后台</a>
+        </article>
+
+        <article class="card">
+          <div>
+            <h2>主播入口</h2>
+            <p>用于主播查看自己的班表、确认班次、申请换班和提交请假。</p>
+            <ul>
+              <li>我的班表</li>
+              <li>确认班次</li>
+              <li>换班池</li>
+              <li>请假申请</li>
+              <li>English / Bahasa Indonesia</li>
+            </ul>
+          </div>
+          <a class="button green" href="./anchor.html">进入主播端</a>
+        </article>
+      </section>
+
+      <p class="footer">
+        下一阶段建议接入飞书多维表格：主播资料、排班结果、请假申请、换班申请都写入 Base，这样主管和主播能共享同一份数据。
+      </p>
+    </main>
+  </div>
+</body>
+</html>

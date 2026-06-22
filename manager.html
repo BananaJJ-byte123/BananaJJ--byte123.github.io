@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海外主播自动排班与换班系统 MVP</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #d8dee8;
+      --blue: #2563eb;
+      --green: #16845b;
+      --amber: #b7791f;
+      --red: #c24141;
+      --cyan: #0e7490;
+      --shadow: 0 16px 36px rgba(16, 24, 40, 0.11);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    button, input, select, textarea { font: inherit; }
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 8px 12px;
+      min-height: 36px;
+      cursor: pointer;
+    }
+    button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    button.success { background: var(--green); border-color: var(--green); color: #fff; }
+    button.danger { background: var(--red); border-color: var(--red); color: #fff; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    input, select, textarea {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: #fff;
+      min-width: 0;
+      width: 100%;
+    }
+    textarea { min-height: 86px; resize: vertical; }
+    label { display: grid; gap: 6px; font-size: 12px; color: #475467; font-weight: 700; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 24px; margin-bottom: 6px; }
+    h2 { font-size: 18px; margin-bottom: 10px; }
+    h3 { font-size: 15px; margin-bottom: 8px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .app { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    .topbar {
+      background: #101828;
+      color: #fff;
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      gap: 14px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 260px; }
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: #fff;
+      color: #101828;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+    .brand strong { display: block; font-size: 16px; line-height: 1.25; }
+    .brand span { display: block; color: #cbd5e1; font-size: 12px; margin-top: 2px; }
+    .top-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .top-controls select, .top-controls button { width: auto; }
+    .top-controls select { background: #182230; color: #fff; border-color: rgba(255,255,255,.18); min-width: 160px; }
+    .top-controls button { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.18); }
+    .layout {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 220px minmax(680px, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .sidebar, .panel, .phone-shell {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .sidebar { padding: 14px; position: sticky; top: 16px; }
+    .side-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 8px; }
+    .nav { width: 100%; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; text-align: left; margin: 2px 0; }
+    .nav.active { background: #e8efff; color: #1849b8; font-weight: 800; }
+    .content { min-width: 0; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+    .stat b { display: block; font-size: 24px; margin: 3px 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .panel { padding: 14px; min-width: 0; margin-bottom: 14px; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    table { width: 100%; min-width: 780px; border-collapse: collapse; }
+    th, td { padding: 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 13px; white-space: nowrap; }
+    th { background: var(--surface-2); color: #475467; }
+    tr:last-child td { border-bottom: 0; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid transparent;
+    }
+    .blue { background: #e8efff; color: #1849b8; }
+    .green { background: #e8f7ef; color: #106b49; }
+    .amber { background: #fff4df; color: #99610f; }
+    .red { background: #ffe8e8; color: #a83333; }
+    .cyan { background: #e5f8fb; color: #0d657b; }
+    .gray { background: #eef1f5; color: #4b5563; }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(92px, 1fr));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .day-name, .day {
+      min-height: 116px;
+      padding: 8px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .day-name { min-height: 34px; background: var(--surface-2); color: #667085; text-align: center; font-weight: 800; }
+    .day-name:nth-child(7n), .day:nth-child(7n) { border-right: 0; }
+    .date { font-weight: 800; margin-bottom: 6px; }
+    .chip {
+      display: block;
+      border-left: 3px solid var(--blue);
+      background: #f8fafc;
+      padding: 5px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.35;
+      margin-top: 5px;
+    }
+    .chip.green { border-left-color: var(--green); }
+    .chip.amber { border-left-color: var(--amber); }
+    .chip.red { border-left-color: var(--red); }
+    .list { display: grid; gap: 10px; }
+    .row-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .phone-shell { padding: 12px; background: #101828; border-radius: 28px; position: sticky; top: 16px; }
+    .phone {
+      height: calc(100vh - 112px);
+      min-height: 690px;
+      border-radius: 22px;
+      overflow: hidden;
+      background: #f7f8fb;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+    }
+    .phone-status { height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: #fff; font-weight: 800; font-size: 12px; }
+    .phone-head { padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+    .phone-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .lang-tabs { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    .lang-tabs button { border: 0; border-radius: 0; min-height: 30px; padding: 5px 8px; font-size: 12px; }
+    .lang-tabs button.active { background: #101828; color: #fff; }
+    .anchor-select { background: #fff; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+    .phone-content { overflow: auto; padding: 14px; }
+    .m-view { display: none; }
+    .m-view.active { display: block; }
+    .mobile-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fff; }
+    .shift-row { display: grid; grid-template-columns: 60px 1fr; gap: 12px; align-items: start; }
+    .time { border-radius: 8px; background: #e8efff; color: #1849b8; padding: 8px 6px; text-align: center; font-weight: 900; font-size: 12px; line-height: 1.25; }
+    .mobile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .bottom-nav { height: 62px; background: #fff; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); }
+    .m-tab { border: 0; border-radius: 0; display: grid; place-items: center; gap: 2px; font-size: 11px; color: #667085; padding: 5px; min-width: 0; }
+    .m-tab.active { color: var(--blue); font-weight: 900; }
+    .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #101828; color: #fff; padding: 10px 14px; border-radius: 8px; opacity: 0; pointer-events: none; transition: opacity .18s ease; z-index: 20; box-shadow: var(--shadow); }
+    .toast.show { opacity: 1; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(16,24,40,.45); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 30; }
+    .modal-backdrop.show { display: flex; }
+    .modal { width: min(680px, 100%); max-height: 86vh; overflow: auto; background: #fff; border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+    @media (max-width: 1280px) {
+      .layout { grid-template-columns: 210px 1fr; }
+      .phone-shell { position: static; grid-column: 1 / -1; margin: 0 auto; width: 390px; }
+    }
+    @media (max-width: 880px) {
+      .topbar { align-items: flex-start; }
+      .layout { grid-template-columns: 1fr; padding: 10px; }
+      .sidebar { position: static; display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+      .side-title { display: none; }
+      .stats, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .calendar { grid-template-columns: 1fr; }
+      .day-name { display: none; }
+      .day, .day:nth-child(7n) { min-height: auto; border-right: 0; }
+      .phone-shell { width: 100%; max-width: 390px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">AS</div>
+        <div>
+          <strong>海外主播排班管理系统 MVP</strong>
+          <span>PC 后台 · 主管/排班员 + 系统管理员 · 共享本地数据库</span>
+        </div>
+      </div>
+      <div class="top-controls">
+        <select id="roleSelect" onchange="setRole(this.value)">
+          <option value="supervisor">主管/排班员</option>
+          <option value="admin">系统管理员</option>
+        </select>
+        <button onclick="window.open('anchor.html','_blank')">打开主播独立系统</button>
+        <button onclick="seedDatabase(true)">重置样本数据库</button>
+        <button onclick="exportDb()">导出数据库</button>
+        <button onclick="document.getElementById('importFile').click()">导入数据库</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importDb(event)">
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar" id="sidebar"></aside>
+      <section class="content" id="content"></section>
+
+      <aside class="phone-shell" id="phoneShell" style="display:none">
+        <div class="phone">
+          <div class="phone-status"><span>17:39</span><span>5G 81%</span></div>
+          <div class="phone-head">
+            <div class="phone-head-row">
+              <div>
+                <h2 id="mTitle" style="margin-bottom:4px;">My Schedule</h2>
+                <div class="muted small" id="mSubtitle"></div>
+              </div>
+              <div class="lang-tabs">
+                <button id="langEn" class="active" onclick="setLang('en')">EN</button>
+                <button id="langId" onclick="setLang('id')">ID</button>
+              </div>
+            </div>
+          </div>
+          <div class="anchor-select">
+            <label><span id="anchorPickLabel">Anchor account</span><select id="mobileAnchorSelect" onchange="setMobileAnchor(this.value)"></select></label>
+          </div>
+          <div class="phone-content" id="mobileContent"></div>
+          <nav class="bottom-nav">
+            <button class="m-tab active" data-mtab="schedule" onclick="setMobileTab('schedule')">📅<span data-i18n="navSchedule">Schedule</span></button>
+            <button class="m-tab" data-mtab="swap" onclick="setMobileTab('swap')">↔<span data-i18n="navSwap">Swap</span></button>
+            <button class="m-tab" data-mtab="leave" onclick="setMobileTab('leave')">＋<span data-i18n="navLeave">Leave</span></button>
+            <button class="m-tab" data-mtab="messages" onclick="setMobileTab('messages')">●<span data-i18n="navMessages">Messages</span></button>
+          </nav>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="head">
+        <div><h2 id="modalTitle">编辑</h2><p class="muted small" id="modalHint"></p></div>
+        <button onclick="closeModal()">关闭</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const DB_KEY = "anchor_scheduler_mvp_db_v1";
+    let db = null;
+    let role = "supervisor";
+    let view = "dashboard";
+    let mobileTab = "schedule";
+    let lang = "en";
+    let mobileAnchorId = null;
+    let lastStorageSnapshot = "";
+    let selectedScheduleDate = "";
+    let scheduleNameSearch = "";
+
+    const i18n = {
+      en: {
+        title: "My Schedule",
+        anchorPick: "Anchor account",
+        navSchedule: "Schedule",
+        navSwap: "Swap",
+        navLeave: "Leave",
+        navMessages: "Messages",
+        today: "Today's shifts",
+        upcoming: "Upcoming shifts",
+        confirmed: "Confirmed",
+        published: "Published",
+        requestSwap: "Request Swap",
+        putToPool: "Put to Pool",
+        takeShift: "Take Shift",
+        submitLeave: "Submit Leave",
+        noShift: "No shifts found.",
+        swapPool: "Swap Pool",
+        leaveRequest: "Leave Request",
+        reason: "Reason",
+        messages: "Messages"
+      },
+      id: {
+        title: "Jadwal Saya",
+        anchorPick: "Akun host",
+        navSchedule: "Jadwal",
+        navSwap: "Tukar",
+        navLeave: "Cuti",
+        navMessages: "Pesan",
+        today: "Shift hari ini",
+        upcoming: "Shift berikutnya",
+        confirmed: "Dikonfirmasi",
+        published: "Dipublikasikan",
+        requestSwap: "Tukar Shift",
+        putToPool: "Masuk Pool",
+        takeShift: "Ambil Shift",
+        submitLeave: "Ajukan Cuti",
+        noShift: "Tidak ada shift.",
+        swapPool: "Pool Tukar Shift",
+        leaveRequest: "Ajukan Cuti",
+        reason: "Alasan",
+        messages: "Pesan"
+      }
+    };
+
+    function uid(prefix) {
+      return prefix + "_" + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+    }
+
+    function saveDb() {
+      db.updatedAt = new Date().toISOString();
+      lastStorageSnapshot = JSON.stringify(db);
+      localStorage.setItem(DB_KEY, lastStorageSnapshot);
+    }
+
+    function loadDb() {
+      const raw = localStorage.getItem(DB_KEY);
+      if (raw) {
+        db = JSON.parse(raw);
+        migrateDb();
+        lastStorageSnapshot = raw;
+      } else {
+        seedDatabase(false);
+      }
+    }
+    function migrateDb() {
+      if (!db.customWorkTimes) db.customWorkTimes = [];
+      if (!selectedScheduleDate) selectedScheduleDate = dateStr(db.rules.month, 1);
+    }
+    function refreshDbIfChanged() {
+      const raw = localStorage.getItem(DB_KEY);
+      if (raw && raw !== lastStorageSnapshot) {
+        db = JSON.parse(raw);
+        migrateDb();
+        lastStorageSnapshot = raw;
+        renderAll();
+      }
+    }
+
+    function seedDatabase(force) {
+      if (!force && localStorage.getItem(DB_KEY)) return;
+      const first = ["Amanda","Siti","Rizky","Maria","Daniel","Putri","James","Ayu","Nadia","Kevin","Lina","Fajar","Grace","Dewi","Jason","Maya","Bima","Clara","Evan","Rani"];
+      const last = ["Lee","Rahma","Putra","Smith","Tan","Wijaya","Halim","Sari","Chen","Lim","Brown","Adams"];
+      const langs = ["English", "Bahasa Indonesia"];
+      const cats = ["Beauty", "Fashion", "Gadget", "Skincare", "Home", "3C"];
+      const countries = [
+        { name: "Indonesia", tz: "UTC+7" },
+        { name: "Philippines", tz: "UTC+8" },
+        { name: "Malaysia", tz: "UTC+8" },
+        { name: "Singapore", tz: "UTC+8" }
+      ];
+      const anchors = Array.from({ length: 96 }, (_, idx) => {
+        const country = countries[idx % countries.length];
+        const language = langs[idx % langs.length];
+        return {
+          id: "a" + (idx + 1),
+          name: first[idx % first.length] + " " + last[(idx * 3) % last.length],
+          country: country.name,
+          timezone: country.tz,
+          language,
+          categories: [cats[idx % cats.length], cats[(idx + 3) % cats.length]],
+          level: ["A", "B", "C"][idx % 3],
+          monthlyTargetHours: 60,
+          maxDailyShifts: 2,
+          status: idx % 19 === 0 ? "paused" : "active",
+          contact: language === "English" ? "email/whatsapp" : "feishu/whatsapp"
+        };
+      });
+      const brands = [
+        { id: "b1", name: "BeautyLab", category: "Beauty", language: "English", priority: 1 },
+        { id: "b2", name: "Skincare+", category: "Skincare", language: "English", priority: 1 },
+        { id: "b3", name: "FashionGo", category: "Fashion", language: "Bahasa Indonesia", priority: 2 },
+        { id: "b4", name: "GadgetPro", category: "Gadget", language: "Bahasa Indonesia", priority: 1 },
+        { id: "b5", name: "HomeMall", category: "Home", language: "English", priority: 3 },
+        { id: "b6", name: "DigitalHub", category: "3C", language: "Bahasa Indonesia", priority: 2 }
+      ];
+      const rooms = brands.flatMap((brand, bIndex) => [1, 2].map((n) => ({
+        id: "r" + (bIndex * 2 + n),
+        brandId: brand.id,
+        name: brand.name + " Room " + String(n).padStart(2, "0"),
+        platform: n === 1 ? "TikTok" : "Shopee",
+        code: brand.name.toUpperCase().replace(/\W/g, "") + "-" + n
+      })));
+      const templates = [
+        { id: "t1", name: "Morning", start: "09:00", end: "12:00", hours: 3 },
+        { id: "t2", name: "Afternoon", start: "14:00", end: "17:00", hours: 3 },
+        { id: "t3", name: "Evening", start: "20:00", end: "23:00", hours: 3 }
+      ];
+      db = {
+        version: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        users: [
+          { id: "u_admin", name: "System Admin", role: "admin" },
+          { id: "u_supervisor", name: "Supervisor Chen", role: "supervisor" }
+        ],
+        anchors,
+        brands,
+        rooms,
+        templates,
+        rules: { month: "2026-07", targetHours: 60, maxDailyShifts: 2, minGapHours: 6, leaveCutoffHours: 3, autoApproveSwap: true },
+        schedules: [],
+        swaps: [],
+        leaves: [],
+        messages: [],
+        customWorkTimes: []
+      };
+      saveDb();
+      generateSchedules(false);
+      if (force) toast("样本数据库已重置：96 位主播、6 个品牌、12 个直播间");
+      renderAll();
+    }
+
+    function getBrand(id) { return db.brands.find((x) => x.id === id); }
+    function getRoom(id) { return db.rooms.find((x) => x.id === id); }
+    function getTemplate(id) { return db.templates.find((x) => x.id === id); }
+    function getAnchor(id) { return db.anchors.find((x) => x.id === id); }
+    function monthDays(month) {
+      const [y, m] = month.split("-").map(Number);
+      return new Date(y, m, 0).getDate();
+    }
+    function dateStr(month, day) { return month + "-" + String(day).padStart(2, "0"); }
+    function hoursForAnchor(anchorId) {
+      return db.schedules.filter((s) => s.anchorId === anchorId && s.status !== "cancelled").reduce((sum, s) => sum + getTemplate(s.templateId).hours, 0);
+    }
+    function shiftsOnDate(anchorId, date) {
+      return db.schedules.filter((s) => s.anchorId === anchorId && s.date === date && s.status !== "cancelled");
+    }
+    function hasConflict(anchorId, date, templateId, scheduleId) {
+      const t = getTemplate(templateId);
+      const sameDay = db.schedules.filter((s) => s.anchorId === anchorId && s.date === date && s.id !== scheduleId && s.status !== "cancelled");
+      if (sameDay.length >= db.rules.maxDailyShifts) return "exceeds daily max";
+      const start = Number(t.start.slice(0, 2));
+      for (const item of sameDay) {
+        const other = getTemplate(item.templateId);
+        const otherStart = Number(other.start.slice(0, 2));
+        const gap = Math.abs(start - otherStart);
+        if (gap < db.rules.minGapHours) return "gap too short";
+      }
+      return "";
+    }
+    function scoreAnchor(anchor, brand, date, templateId) {
+      if (anchor.status !== "active") return -999;
+      if (anchor.language !== brand.language) return -999;
+      if (hasConflict(anchor.id, date, templateId, null)) return -999;
+      let score = 0;
+      if (anchor.categories.includes(brand.category)) score += 40;
+      if (anchor.level === "A") score += 12;
+      if (anchor.level === "B") score += 6;
+      score += Math.max(0, 80 - hoursForAnchor(anchor.id));
+      return score;
+    }
+    function generateSchedules(showMessage) {
+      db.schedules = [];
+      db.swaps = [];
+      db.leaves = [];
+      db.messages = [];
+      const month = db.rules.month;
+      const days = monthDays(month);
+      let counter = 1;
+      for (let day = 1; day <= days; day++) {
+        const date = dateStr(month, day);
+        db.brands.sort((a, b) => a.priority - b.priority).forEach((brand, index) => {
+          const template = db.templates[(day + index) % db.templates.length];
+          const room = db.rooms.find((r) => r.brandId === brand.id);
+          const ranked = db.anchors
+            .map((anchor) => ({ anchor, score: scoreAnchor(anchor, brand, date, template.id) }))
+            .filter((x) => x.score > -1)
+            .sort((a, b) => b.score - a.score);
+          const anchor = ranked[0] ? ranked[0].anchor : null;
+          db.schedules.push({
+            id: "s" + counter++,
+            date,
+            templateId: template.id,
+            brandId: brand.id,
+            roomId: room.id,
+            anchorId: anchor ? anchor.id : null,
+            status: anchor ? "draft" : "open",
+            source: "auto",
+            note: anchor ? "" : "No eligible anchor"
+          });
+        });
+      }
+      saveDb();
+      if (showMessage) toast("已生成 " + db.schedules.length + " 个排班草稿");
+      renderAll();
+    }
+    function publishSchedules() {
+      db.schedules.forEach((s) => { if (s.status === "draft") s.status = "published"; });
+      db.messages.push({ id: uid("msg"), type: "publish", text: "Monthly schedule published for " + db.rules.month, createdAt: new Date().toISOString() });
+      saveDb();
+      toast("已发布排班，主播端可查看");
+      renderAll();
+    }
+    function confirmShift(scheduleId) {
+      const s = db.schedules.find((x) => x.id === scheduleId);
+      if (s) s.status = "confirmed";
+      db.messages.push({ id: uid("msg"), anchorId: s.anchorId, type: "confirm", text: "Shift confirmed: " + s.date, createdAt: new Date().toISOString() });
+      saveDb();
+      toast("班次已确认");
+      renderAll();
+    }
+    function putSwapPool(scheduleId) {
+      const s = db.schedules.find((x) => x.id === scheduleId);
+      if (!s) return;
+      s.status = "swap_pending";
+      db.swaps.push({ id: uid("swap"), type: "open_market", scheduleId, fromAnchorId: s.anchorId, toAnchorId: null, status: "open", reason: "Anchor requested swap", createdAt: new Date().toISOString() });
+      db.messages.push({ id: uid("msg"), type: "swap", text: "Swap pool opened for " + s.date, createdAt: new Date().toISOString() });
+      saveDb();
+      toast("已放入换班池");
+      renderAll();
+    }
+    function takeSwap(swapId, anchorId) {
+      const sw = db.swaps.find((x) => x.id === swapId);
+      const s = db.schedules.find((x) => x.id === sw.scheduleId);
+      const conflict = hasConflict(anchorId, s.date, s.templateId, s.id);
+      sw.toAnchorId = anchorId;
+      if (conflict) {
+        sw.status = "needs_review";
+        sw.validation = conflict;
+        toast("接班有冲突，已提交主管审核");
+      } else {
+        sw.status = db.rules.autoApproveSwap ? "approved" : "pending";
+        sw.validation = "passed";
+        if (db.rules.autoApproveSwap) {
+          s.anchorId = anchorId;
+          s.status = "published";
+        }
+        toast(db.rules.autoApproveSwap ? "接班成功，排班已更新" : "已提交主管审核");
+      }
+      saveDb();
+      renderAll();
+    }
+    function approveSwap(swapId) {
+      const sw = db.swaps.find((x) => x.id === swapId);
+      const s = db.schedules.find((x) => x.id === sw.scheduleId);
+      if (!sw.toAnchorId) {
+        toast("还没有接班人");
+        return;
+      }
+      sw.status = "approved";
+      s.anchorId = sw.toAnchorId;
+      s.status = "published";
+      saveDb();
+      toast("换班已批准并同步");
+      renderAll();
+    }
+    function rejectSwap(swapId) {
+      const sw = db.swaps.find((x) => x.id === swapId);
+      const s = db.schedules.find((x) => x.id === sw.scheduleId);
+      sw.status = "rejected";
+      s.status = "published";
+      saveDb();
+      toast("换班已拒绝");
+      renderAll();
+    }
+    function submitLeave(scheduleId, reason) {
+      const s = db.schedules.find((x) => x.id === scheduleId);
+      s.status = "leave_pending";
+      db.leaves.push({ id: uid("leave"), anchorId: s.anchorId, scheduleId, reason: reason || "Personal reason", status: "pending", createdAt: new Date().toISOString() });
+      db.swaps.push({ id: uid("swap"), type: "leave_cover", scheduleId, fromAnchorId: s.anchorId, toAnchorId: null, status: "open", reason: "Leave cover needed", createdAt: new Date().toISOString() });
+      saveDb();
+      toast("请假已提交，班次进入换班池");
+      renderAll();
+    }
+    function approveLeave(leaveId) {
+      const leave = db.leaves.find((x) => x.id === leaveId);
+      leave.status = "approved";
+      saveDb();
+      toast("请假已批准");
+      renderAll();
+    }
+    function addAnchorFromForm() {
+      const form = document.getElementById("anchorForm");
+      const fd = new FormData(form);
+      db.anchors.push({
+        id: uid("a"),
+        name: fd.get("name"),
+        country: fd.get("country"),
+        timezone: fd.get("timezone"),
+        language: fd.get("language"),
+        categories: fd.get("categories").split(",").map((x) => x.trim()).filter(Boolean),
+        level: fd.get("level"),
+        monthlyTargetHours: Number(fd.get("monthlyTargetHours")),
+        maxDailyShifts: Number(fd.get("maxDailyShifts")),
+        status: "active",
+        contact: fd.get("contact")
+      });
+      saveDb();
+      closeModal();
+      toast("主播已添加");
+      renderAll();
+    }
+    function saveRules() {
+      db.rules.month = document.getElementById("ruleMonth").value;
+      db.rules.targetHours = Number(document.getElementById("ruleTarget").value);
+      db.rules.maxDailyShifts = Number(document.getElementById("ruleDaily").value);
+      db.rules.minGapHours = Number(document.getElementById("ruleGap").value);
+      db.rules.leaveCutoffHours = Number(document.getElementById("ruleLeave").value);
+      db.rules.autoApproveSwap = document.getElementById("ruleAuto").value === "true";
+      saveDb();
+      toast("规则已保存");
+      renderAll();
+    }
+    function setScheduleDate(value) {
+      selectedScheduleDate = value;
+      renderAll();
+    }
+    function setScheduleNameSearch(value) {
+      scheduleNameSearch = value.trim().toLowerCase();
+      renderAll();
+    }
+    function updateScheduleSearch(value) {
+      scheduleNameSearch = value.trim().toLowerCase();
+      updateManualAnchorOptions();
+    }
+    function updateManualAnchorOptions() {
+      const anchors = filteredAnchorsForSchedule();
+      const options = anchors.map((a) => `<option value="${a.id}">${a.name} · ${a.language} · ${a.categories.join("/")}</option>`).join("");
+      const manual = document.getElementById("manualAnchor");
+      const work = document.getElementById("workAnchor");
+      if (manual) manual.innerHTML = options;
+      if (work) work.innerHTML = anchors.map((a) => `<option value="${a.id}">${a.name} · ${a.language}</option>`).join("");
+    }
+    function filteredAnchorsForSchedule() {
+      const term = scheduleNameSearch;
+      return db.anchors.filter((a) => a.status === "active" && (!term || a.name.toLowerCase().includes(term)));
+    }
+    function addManualSchedule() {
+      const date = document.getElementById("manualDate").value;
+      const anchorId = document.getElementById("manualAnchor").value;
+      const brandId = document.getElementById("manualBrand").value;
+      let templateId = document.getElementById("manualTemplate").value;
+      const customStart = document.getElementById("manualStart").value;
+      const customEnd = document.getElementById("manualEnd").value;
+      const brand = getBrand(brandId);
+      const anchor = getAnchor(anchorId);
+      if (!date || !anchorId || !brandId || !templateId) {
+        toast("请先选择日期、主播、品牌和班次");
+        return;
+      }
+      if (!anchor) {
+        toast("没有匹配的主播，请调整搜索条件");
+        return;
+      }
+      if (customStart && customEnd) {
+        const startHour = Number(customStart.slice(0, 2)) + Number(customStart.slice(3, 5)) / 60;
+        const endHour = Number(customEnd.slice(0, 2)) + Number(customEnd.slice(3, 5)) / 60;
+        if (endHour <= startHour) {
+          toast("自定义结束时间必须晚于开始时间");
+          return;
+        }
+        const existing = db.templates.find((t) => t.start === customStart && t.end === customEnd);
+        if (existing) {
+          templateId = existing.id;
+        } else {
+          const customTemplate = { id: uid("t"), name: "Custom", start: customStart, end: customEnd, hours: Math.round((endHour - startHour) * 10) / 10 };
+          db.templates.push(customTemplate);
+          templateId = customTemplate.id;
+        }
+      }
+      if (anchor.language !== brand.language) {
+        toast("语言不匹配：该主播不能排这个品牌");
+        return;
+      }
+      const conflict = hasConflict(anchorId, date, templateId, null);
+      if (conflict) {
+        toast("排班冲突：" + conflict);
+        return;
+      }
+      const room = db.rooms.find((r) => r.brandId === brandId);
+      db.schedules.push({
+        id: uid("s"),
+        date,
+        templateId,
+        brandId,
+        roomId: room.id,
+        anchorId,
+        status: "draft",
+        source: "manual",
+        note: "Manual schedule"
+      });
+      saveDb();
+      toast("已新增手动排班");
+      renderAll();
+    }
+    function saveCustomWorkTime() {
+      const anchorId = document.getElementById("workAnchor").value;
+      const date = document.getElementById("workDate").value;
+      const start = document.getElementById("workStart").value;
+      const end = document.getElementById("workEnd").value;
+      const note = document.getElementById("workNote").value;
+      if (!anchorId || !date || !start || !end) {
+        toast("请填写员工、日期、开始和结束时间");
+        return;
+      }
+      db.customWorkTimes.push({ id: uid("work"), anchorId, date, start, end, note, createdAt: new Date().toISOString() });
+      saveDb();
+      toast("已保存自定义上班时间");
+      renderAll();
+    }
+    function deleteCustomWorkTime(id) {
+      db.customWorkTimes = db.customWorkTimes.filter((item) => item.id !== id);
+      saveDb();
+      toast("已删除自定义上班时间");
+      renderAll();
+    }
+    function filterEditAnchors(term) {
+      const select = document.getElementById("editAnchor");
+      if (!select) return;
+      const scheduleId = select.dataset.scheduleId;
+      const s = db.schedules.find((x) => x.id === scheduleId);
+      const b = getBrand(s.brandId);
+      const current = select.value;
+      const keyword = term.trim().toLowerCase();
+      const anchors = db.anchors.filter((a) => a.status === "active" && a.language === b.language && (!keyword || a.name.toLowerCase().includes(keyword)));
+      select.innerHTML = anchors.map((a) => `<option value="${a.id}" ${a.id === current ? "selected" : ""}>${a.name} · ${a.language} · ${a.categories.join("/")}</option>`).join("");
+    }
+
+    function renderAll() {
+      if (!db) return;
+      renderSidebar();
+      renderContent();
+      renderMobileAnchorSelect();
+      renderMobile();
+      document.getElementById("phoneShell").style.display = "none";
+    }
+    function renderSidebar() {
+      const commonSupervisor = [
+        ["dashboard", "● 今日大盘"],
+        ["calendar", "■ 月排班"],
+        ["swaps", "↔ 换班/请假"],
+        ["anchors", "◎ 主播资料"],
+        ["rules", "⚙ 排班规则"]
+      ];
+      const admin = [
+        ["adminDashboard", "● 系统概览"],
+        ["users", "◆ 角色权限"],
+        ["anchors", "◎ 主播资料"],
+        ["config", "■ 品牌/直播间"],
+        ["rules", "⚙ 系统规则"],
+        ["database", "▣ 数据库"]
+      ];
+      const items = role === "admin" ? admin : commonSupervisor;
+      if (!items.find((x) => x[0] === view)) view = items[0][0];
+      document.getElementById("sidebar").innerHTML = `
+        <div class="side-title">${roleLabel(role)}</div>
+        ${items.map(([id, label]) => `<button class="nav ${view === id ? "active" : ""}" onclick="setView('${id}')">${label}</button>`).join("")}
+      `;
+    }
+    function roleLabel(r) {
+      return r === "admin" ? "系统管理员" : "主管/排班员";
+    }
+    function setRole(next) {
+      role = next;
+      view = next === "admin" ? "adminDashboard" : "dashboard";
+      renderAll();
+    }
+    function setView(next) {
+      view = next;
+      renderAll();
+    }
+    function renderContent() {
+      const map = {
+        dashboard: renderDashboard,
+        calendar: renderCalendar,
+        swaps: renderSwaps,
+        anchors: renderAnchors,
+        rules: renderRules,
+        adminDashboard: renderAdminDashboard,
+        users: renderUsers,
+        config: renderConfig,
+        database: renderDatabase,
+        anchorGuide: renderAnchorGuide
+      };
+      document.getElementById("content").innerHTML = (map[view] || renderDashboard)();
+    }
+    function statusBadge(status) {
+      const color = { draft: "gray", published: "blue", confirmed: "green", swap_pending: "amber", leave_pending: "red", open: "red", approved: "green", pending: "amber", needs_review: "amber", rejected: "red" }[status] || "gray";
+      return `<span class="badge ${color}">${status}</span>`;
+    }
+    function renderDashboard() {
+      const today = dateStr(db.rules.month, 4);
+      const todayShifts = db.schedules.filter((s) => s.date === today);
+      const confirmed = db.schedules.filter((s) => s.status === "confirmed").length;
+      const risky = db.schedules.filter((s) => ["open", "leave_pending"].includes(s.status) || !s.anchorId).length;
+      return `
+        <div class="head">
+          <div><h1>今日大盘</h1><p class="muted">主管看全盘、生成排班、发布班表、处理换班和请假。</p></div>
+          <div class="actions"><button onclick="generateSchedules(true)">一键生成排班</button><button class="primary" onclick="publishSchedules()">发布到主播端</button><button onclick="toast('飞书机器人：已模拟发送今日排班摘要')">测试飞书通知</button></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="muted">主播总数</span><b>${db.anchors.length}</b><span class="badge green">${db.anchors.filter((a) => a.status === "active").length} active</span></div>
+          <div class="stat"><span class="muted">本月班次</span><b>${db.schedules.length}</b><span class="badge blue">${confirmed} confirmed</span></div>
+          <div class="stat"><span class="muted">待处理换班</span><b>${db.swaps.filter((s) => ["open","pending","needs_review"].includes(s.status)).length}</b><span class="badge amber">needs action</span></div>
+          <div class="stat"><span class="muted">风险班次</span><b>${risky}</b><span class="badge red">open/leave</span></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><h2>${today} 班次</h2>${scheduleTable(todayShifts.slice(0, 8))}</div>
+          <div class="panel"><h2>异常提醒</h2><div class="list">
+            ${db.schedules.filter((s) => !s.anchorId || ["open","leave_pending","swap_pending"].includes(s.status)).slice(0, 6).map((s) => alertRow(s)).join("") || `<p class="muted">暂无异常</p>`}
+          </div></div>
+        </div>
+      `;
+    }
+    function alertRow(s) {
+      const b = getBrand(s.brandId), t = getTemplate(s.templateId), a = getAnchor(s.anchorId);
+      return `<div class="row-card"><div><b>${s.date} ${t.start}-${t.end} · ${b.name}</b><br><span class="muted small">${a ? a.name : "缺少主播"} · ${s.note || s.status}</span></div>${statusBadge(s.status)}</div>`;
+    }
+    function scheduleTable(items) {
+      return `<div class="table-wrap"><table><thead><tr><th>日期</th><th>时间</th><th>主播</th><th>品牌/直播间</th><th>状态</th><th>操作</th></tr></thead><tbody>
+        ${items.map((s) => {
+          const a = getAnchor(s.anchorId), b = getBrand(s.brandId), r = getRoom(s.roomId), t = getTemplate(s.templateId);
+          return `<tr><td>${s.date}</td><td>${t.start}-${t.end}</td><td>${a ? a.name : "-"}</td><td>${b.name}<br><span class="muted small">${r.name}</span></td><td>${statusBadge(s.status)}</td><td><button onclick="editSchedule('${s.id}')">调整</button></td></tr>`;
+        }).join("")}
+      </tbody></table></div>`;
+    }
+    function renderCalendar() {
+      if (!selectedScheduleDate) selectedScheduleDate = dateStr(db.rules.month, 1);
+      const days = monthDays(db.rules.month);
+      const cells = [];
+      for (let d = 1; d <= Math.min(days, 31); d++) {
+        const date = dateStr(db.rules.month, d);
+        const shifts = db.schedules.filter((s) => s.date === date).slice(0, 3);
+        cells.push(`<div class="day"><div class="date">${d}</div>${shifts.map((s) => {
+          const a = getAnchor(s.anchorId), b = getBrand(s.brandId), t = getTemplate(s.templateId);
+          const cls = s.status === "confirmed" ? "green" : s.status.includes("pending") || s.status === "open" ? "red" : s.status === "draft" ? "amber" : "";
+          return `<span class="chip ${cls}">${t.start} ${a ? a.name.split(" ")[0] : "缺人"} · ${b.name}</span>`;
+        }).join("")}</div>`);
+      }
+      const filteredAnchors = filteredAnchorsForSchedule();
+      const selectedShifts = db.schedules.filter((s) => {
+        if (s.date !== selectedScheduleDate) return false;
+        if (!scheduleNameSearch) return true;
+        const a = getAnchor(s.anchorId);
+        return a && a.name.toLowerCase().includes(scheduleNameSearch);
+      });
+      const workRows = db.customWorkTimes
+        .filter((item) => item.date === selectedScheduleDate)
+        .sort((a, b) => a.start.localeCompare(b.start))
+        .map((item) => {
+          const anchor = getAnchor(item.anchorId);
+          return `<tr><td>${anchor ? anchor.name : "-"}</td><td>${item.date}</td><td>${item.start}-${item.end}</td><td>${item.note || "-"}</td><td><button onclick="deleteCustomWorkTime('${item.id}')">删除</button></td></tr>`;
+        }).join("");
+      return `<div class="head"><div><h1>${db.rules.month} 月排班</h1><p class="muted">排班员可以切换日期、搜索主播、手动排班，并自定义员工上班时间。</p></div><div class="actions"><button onclick="generateSchedules(true)">重新生成草稿</button><button class="primary" onclick="publishSchedules()">发布班表</button></div></div>
+        <div class="panel">
+          <h2>排班工作台</h2>
+          <div class="grid-3">
+            <label>切换日期<input id="manualDate" type="date" value="${selectedScheduleDate}" onchange="setScheduleDate(this.value)"></label>
+            <label>搜索主播姓名<input id="scheduleSearchInput" value="${scheduleNameSearch}" placeholder="输入 Amanda / Siti / Rizky" oninput="updateScheduleSearch(this.value)"></label>
+            <label>选择主播<select id="manualAnchor">${filteredAnchors.map((a) => `<option value="${a.id}">${a.name} · ${a.language} · ${a.categories.join("/")}</option>`).join("")}</select></label>
+            <label>品牌/项目<select id="manualBrand">${db.brands.map((b) => `<option value="${b.id}">${b.name} · ${b.language} · ${b.category}</option>`).join("")}</select></label>
+            <label>班次模板<select id="manualTemplate">${db.templates.map((t) => `<option value="${t.id}">${t.name} · ${t.start}-${t.end}</option>`).join("")}</select></label>
+            <label>自定义开始<input id="manualStart" type="time"></label>
+            <label>自定义结束<input id="manualEnd" type="time"></label>
+            <label>应用筛选<button onclick="setScheduleNameSearch(document.getElementById('scheduleSearchInput').value)">筛选当天表格</button></label>
+            <label>操作<button class="primary" onclick="addManualSchedule()">新增当天排班</button></label>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>${selectedScheduleDate} 当天排班</h2>
+          ${scheduleTable(selectedShifts)}
+        </div>
+        <div class="panel">
+          <h2>自定义员工上班时间</h2>
+          <div class="grid-3">
+            <label>员工<select id="workAnchor">${filteredAnchors.map((a) => `<option value="${a.id}">${a.name} · ${a.language}</option>`).join("")}</select></label>
+            <label>日期<input id="workDate" type="date" value="${selectedScheduleDate}"></label>
+            <label>备注<input id="workNote" placeholder="例如：临时加班 / 只播美妆"></label>
+            <label>开始时间<input id="workStart" type="time" value="09:00"></label>
+            <label>结束时间<input id="workEnd" type="time" value="12:00"></label>
+            <label>操作<button class="primary" onclick="saveCustomWorkTime()">保存上班时间</button></label>
+          </div>
+          <br>
+          <div class="table-wrap"><table><thead><tr><th>员工</th><th>日期</th><th>上班时间</th><th>备注</th><th>操作</th></tr></thead><tbody>${workRows || `<tr><td colspan="5" class="muted">当天暂无自定义上班时间</td></tr>`}</tbody></table></div>
+        </div>
+        <div class="panel"><div class="calendar">
+          ${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => `<div class="day-name">${d}</div>`).join("")}
+          ${cells.join("")}
+        </div></div>
+        <div class="panel"><h2>最近班次</h2>${scheduleTable(db.schedules.slice(0, 18))}</div>`;
+    }
+    function renderSwaps() {
+      return `<div class="head"><div><h1>换班 / 请假</h1><p class="muted">主播发起后，主管可以批准、拒绝，或等待符合条件的人接班。</p></div><button onclick="toast('飞书机器人：已模拟发送换班待办')">发飞书待办</button></div>
+        <div class="panel"><h2>换班列表</h2><div class="table-wrap"><table><thead><tr><th>类型</th><th>原主播</th><th>接班人</th><th>班次</th><th>校验</th><th>状态</th><th>操作</th></tr></thead><tbody>
+        ${db.swaps.map((sw) => {
+          const s = db.schedules.find((x) => x.id === sw.scheduleId), from = getAnchor(sw.fromAnchorId), to = getAnchor(sw.toAnchorId), b = getBrand(s.brandId), t = getTemplate(s.templateId);
+          return `<tr><td>${sw.type}</td><td>${from ? from.name : "-"}</td><td>${to ? to.name : "-"}</td><td>${s.date} ${t.start}-${t.end}<br><span class="muted small">${b.name}</span></td><td>${sw.validation || "-"}</td><td>${statusBadge(sw.status)}</td><td><button onclick="approveSwap('${sw.id}')">批准</button> <button onclick="rejectSwap('${sw.id}')">拒绝</button></td></tr>`;
+        }).join("") || `<tr><td colspan="7" class="muted">暂无换班</td></tr>`}
+        </tbody></table></div></div>
+        <div class="panel"><h2>请假列表</h2><div class="table-wrap"><table><thead><tr><th>主播</th><th>班次</th><th>原因</th><th>状态</th><th>操作</th></tr></thead><tbody>
+        ${db.leaves.map((lv) => {
+          const a = getAnchor(lv.anchorId), s = db.schedules.find((x) => x.id === lv.scheduleId), t = getTemplate(s.templateId), b = getBrand(s.brandId);
+          return `<tr><td>${a.name}</td><td>${s.date} ${t.start}-${t.end}<br><span class="muted small">${b.name}</span></td><td>${lv.reason}</td><td>${statusBadge(lv.status)}</td><td><button onclick="approveLeave('${lv.id}')">批准</button></td></tr>`;
+        }).join("") || `<tr><td colspan="5" class="muted">暂无请假</td></tr>`}
+        </tbody></table></div></div>`;
+    }
+    function renderAnchors() {
+      const rows = db.anchors.slice(0, 40).map((a) => `<tr><td>${a.name}</td><td>${a.country}<br><span class="muted small">${a.timezone}</span></td><td>${a.language}</td><td>${a.categories.join(", ")}</td><td>${a.level}</td><td>${hoursForAnchor(a.id)} / ${a.monthlyTargetHours}</td><td>${statusBadge(a.status)}</td></tr>`).join("");
+      return `<div class="head"><div><h1>主播资料</h1><p class="muted">样本库已有 ${db.anchors.length} 位主播，后期可换成 Excel 导入。</p></div><div class="actions"><button onclick="openAddAnchor()">新增主播</button><button onclick="downloadCsv()">导出主播 CSV</button></div></div>
+        <div class="panel">${anchorTable(rows)}</div>`;
+    }
+    function anchorTable(rows) {
+      return `<div class="table-wrap"><table><thead><tr><th>主播</th><th>国家/时区</th><th>语言</th><th>类目</th><th>等级</th><th>工时</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    function renderRules() {
+      return `<div class="head"><div><h1>规则设置</h1><p class="muted">这些规则会影响自动排班和换班校验。</p></div><button class="primary" onclick="saveRules()">保存规则</button></div>
+        <div class="panel"><div class="grid-3">
+          <label>排班月份<input id="ruleMonth" value="${db.rules.month}"></label>
+          <label>每人目标工时<input id="ruleTarget" type="number" value="${db.rules.targetHours}"></label>
+          <label>每天最多场次<input id="ruleDaily" type="number" value="${db.rules.maxDailyShifts}"></label>
+          <label>两场最小间隔<input id="ruleGap" type="number" value="${db.rules.minGapHours}"></label>
+          <label>请假截止小时<input id="ruleLeave" type="number" value="${db.rules.leaveCutoffHours}"></label>
+          <label>无冲突自动批准换班<select id="ruleAuto"><option value="true" ${db.rules.autoApproveSwap ? "selected" : ""}>开启</option><option value="false" ${!db.rules.autoApproveSwap ? "selected" : ""}>关闭</option></select></label>
+        </div></div>`;
+    }
+    function renderAdminDashboard() {
+      return `<div class="head"><div><h1>系统概览</h1><p class="muted">管理员负责基础配置、角色权限、数据库导入导出。</p></div><button class="primary" onclick="exportDb()">备份数据库</button></div>
+        <div class="stats">
+          <div class="stat"><span class="muted">用户角色</span><b>3</b><span class="badge blue">admin/supervisor/anchor</span></div>
+          <div class="stat"><span class="muted">品牌</span><b>${db.brands.length}</b><span class="badge green">${db.rooms.length} rooms</span></div>
+          <div class="stat"><span class="muted">模板</span><b>${db.templates.length}</b><span class="badge cyan">shift templates</span></div>
+          <div class="stat"><span class="muted">数据库版本</span><b>v${db.version}</b><span class="badge gray">localStorage</span></div>
+        </div>
+        <div class="panel"><h2>管理员可操作内容</h2><div class="list">
+          <div class="row-card"><div><b>角色权限</b><br><span class="muted small">查看系统管理员、主管、主播三类角色。</span></div><button onclick="setView('users')">进入</button></div>
+          <div class="row-card"><div><b>基础资料</b><br><span class="muted small">维护主播、品牌、直播间、班次模板。</span></div><button onclick="setView('config')">进入</button></div>
+          <div class="row-card"><div><b>数据库</b><br><span class="muted small">重置样本、导出备份、导入备份。</span></div><button onclick="setView('database')">进入</button></div>
+        </div></div>`;
+    }
+    function renderUsers() {
+      return `<div class="head"><div><h1>角色权限</h1><p class="muted">第一版用角色切换模拟登录，正式版会改成账号密码/飞书登录。</p></div></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>角色</th><th>使用端</th><th>可操作内容</th></tr></thead><tbody>
+          <tr><td>系统管理员</td><td>PC</td><td>基础配置、角色、数据库、规则</td></tr>
+          <tr><td>主管/排班员</td><td>PC / 平板</td><td>生成排班、调整、发布、处理换班请假</td></tr>
+          <tr><td>主播</td><td>移动端/小程序</td><td>看班表、确认、换班、请假、接班</td></tr>
+        </tbody></table></div></div>`;
+    }
+    function renderConfig() {
+      return `<div class="head"><div><h1>品牌 / 直播间 / 班次模板</h1><p class="muted">管理员后期在这里维护基础数据。</p></div></div>
+        <div class="grid-2">
+          <div class="panel"><h2>品牌</h2><div class="table-wrap"><table><thead><tr><th>品牌</th><th>类目</th><th>语言</th><th>优先级</th></tr></thead><tbody>${db.brands.map((b) => `<tr><td>${b.name}</td><td>${b.category}</td><td>${b.language}</td><td>${b.priority}</td></tr>`).join("")}</tbody></table></div></div>
+          <div class="panel"><h2>班次模板</h2><div class="table-wrap"><table><thead><tr><th>名称</th><th>时间</th><th>时长</th></tr></thead><tbody>${db.templates.map((t) => `<tr><td>${t.name}</td><td>${t.start}-${t.end}</td><td>${t.hours}h</td></tr>`).join("")}</tbody></table></div></div>
+        </div>
+        <div class="panel"><h2>直播间</h2><div class="table-wrap"><table><thead><tr><th>直播间</th><th>品牌</th><th>平台</th><th>编号</th></tr></thead><tbody>${db.rooms.map((r) => `<tr><td>${r.name}</td><td>${getBrand(r.brandId).name}</td><td>${r.platform}</td><td>${r.code}</td></tr>`).join("")}</tbody></table></div></div>`;
+    }
+    function renderDatabase() {
+      return `<div class="head"><div><h1>数据库</h1><p class="muted">第一版使用浏览器本地数据库，刷新不会丢；换电脑需要导出/导入。</p></div></div>
+        <div class="panel"><div class="grid-3">
+          <button class="danger" onclick="seedDatabase(true)">重置样本数据库</button>
+          <button class="primary" onclick="exportDb()">导出 JSON 备份</button>
+          <button onclick="document.getElementById('importFile').click()">导入 JSON 备份</button>
+        </div></div>
+        <div class="panel"><h2>当前数据量</h2><div class="table-wrap"><table><thead><tr><th>表</th><th>数量</th></tr></thead><tbody>
+          <tr><td>anchors 主播</td><td>${db.anchors.length}</td></tr>
+          <tr><td>brands 品牌</td><td>${db.brands.length}</td></tr>
+          <tr><td>rooms 直播间</td><td>${db.rooms.length}</td></tr>
+          <tr><td>schedules 排班</td><td>${db.schedules.length}</td></tr>
+          <tr><td>swaps 换班</td><td>${db.swaps.length}</td></tr>
+          <tr><td>leaves 请假</td><td>${db.leaves.length}</td></tr>
+          <tr><td>customWorkTimes 自定义上班时间</td><td>${db.customWorkTimes.length}</td></tr>
+        </tbody></table></div></div>`;
+    }
+    function renderAnchorGuide() {
+      return `<div class="head"><div><h1>主播端说明</h1><p class="muted">右侧手机区域就是主播/小程序端样机，可切换主播账号和语言。</p></div></div>
+        <div class="panel"><h2>主播可以做什么</h2><div class="list">
+          <div class="row-card"><div><b>看班表</b><br><span class="muted small">查看自己已发布/已确认的班次。</span></div><span class="badge blue">Schedule</span></div>
+          <div class="row-card"><div><b>确认班次</b><br><span class="muted small">点击 Confirm，主管端会看到 confirmed 状态。</span></div><span class="badge green">Confirm</span></div>
+          <div class="row-card"><div><b>换班</b><br><span class="muted small">把自己的班放入换班池，或接别人释放的班。</span></div><span class="badge amber">Swap</span></div>
+          <div class="row-card"><div><b>请假</b><br><span class="muted small">提交后班次进入待接班状态。</span></div><span class="badge red">Leave</span></div>
+        </div></div>`;
+    }
+    function editSchedule(scheduleId) {
+      const s = db.schedules.find((x) => x.id === scheduleId), b = getBrand(s.brandId), t = getTemplate(s.templateId);
+      openModal("调整班次", `${s.date} ${t.start}-${t.end} · ${b.name}`, `
+        <label>搜索主播姓名<input id="editAnchorSearch" placeholder="输入主播姓名" oninput="filterEditAnchors(this.value)"></label>
+        <br><label>选择主播<select id="editAnchor" data-schedule-id="${s.id}">${db.anchors.filter((a) => a.status === "active" && a.language === b.language).map((a) => `<option value="${a.id}" ${a.id === s.anchorId ? "selected" : ""}>${a.name} · ${a.language} · ${a.categories.join("/")}</option>`).join("")}</select></label>
+        <br><label>状态<select id="editStatus">${["draft","published","confirmed","swap_pending","leave_pending","open"].map((st) => `<option value="${st}" ${st === s.status ? "selected" : ""}>${st}</option>`).join("")}</select></label>
+        <br><div class="actions"><button class="primary" onclick="saveScheduleEdit('${s.id}')">保存</button></div>
+      `);
+    }
+    function saveScheduleEdit(id) {
+      const s = db.schedules.find((x) => x.id === id);
+      s.anchorId = document.getElementById("editAnchor").value;
+      s.status = document.getElementById("editStatus").value;
+      saveDb();
+      closeModal();
+      toast("班次已调整");
+      renderAll();
+    }
+    function openAddAnchor() {
+      openModal("新增主播", "第一版直接写入本地数据库。", `
+        <form id="anchorForm" class="grid-3">
+          <label>姓名<input name="name" value="New Anchor"></label>
+          <label>国家<input name="country" value="Indonesia"></label>
+          <label>时区<input name="timezone" value="UTC+7"></label>
+          <label>语言<select name="language"><option>English</option><option>Bahasa Indonesia</option></select></label>
+          <label>类目，逗号分隔<input name="categories" value="Beauty,Fashion"></label>
+          <label>等级<select name="level"><option>A</option><option>B</option><option>C</option></select></label>
+          <label>月目标工时<input name="monthlyTargetHours" type="number" value="60"></label>
+          <label>每日最多场次<input name="maxDailyShifts" type="number" value="2"></label>
+          <label>联系方式<input name="contact" value="whatsapp"></label>
+        </form>
+        <br><div class="actions"><button class="primary" onclick="addAnchorFromForm()">添加主播</button></div>
+      `);
+    }
+    function renderMobileAnchorSelect() {
+      const select = document.getElementById("mobileAnchorSelect");
+      if (!mobileAnchorId) mobileAnchorId = db.anchors.find((a) => a.status === "active").id;
+      select.innerHTML = db.anchors.filter((a) => a.status === "active").slice(0, 40).map((a) => `<option value="${a.id}" ${a.id === mobileAnchorId ? "selected" : ""}>${a.name} · ${a.language}</option>`).join("");
+    }
+    function setMobileAnchor(id) {
+      mobileAnchorId = id;
+      renderMobile();
+    }
+    function setLang(next) {
+      lang = next;
+      document.getElementById("langEn").classList.toggle("active", lang === "en");
+      document.getElementById("langId").classList.toggle("active", lang === "id");
+      renderMobile();
+    }
+    function setMobileTab(next) {
+      mobileTab = next;
+      document.querySelectorAll(".m-tab").forEach((b) => b.classList.toggle("active", b.dataset.mtab === next));
+      renderMobile();
+    }
+    function t(key) { return i18n[lang][key] || key; }
+    function renderMobile() {
+      if (!db || !mobileAnchorId) return;
+      const anchor = getAnchor(mobileAnchorId);
+      document.getElementById("mTitle").textContent = t("title");
+      document.getElementById("mSubtitle").textContent = anchor.name + " · " + anchor.timezone;
+      document.getElementById("anchorPickLabel").textContent = t("anchorPick");
+      document.querySelectorAll("[data-i18n]").forEach((el) => el.textContent = t(el.dataset.i18n));
+      const content = document.getElementById("mobileContent");
+      const mine = db.schedules.filter((s) => s.anchorId === anchor.id).sort((a, b) => a.date.localeCompare(b.date));
+      if (mobileTab === "schedule") content.innerHTML = renderMobileSchedule(mine);
+      if (mobileTab === "swap") content.innerHTML = renderMobileSwap(mine);
+      if (mobileTab === "leave") content.innerHTML = renderMobileLeave(mine);
+      if (mobileTab === "messages") content.innerHTML = renderMobileMessages(anchor.id);
+    }
+    function mobileShiftCard(s, actions) {
+      const b = getBrand(s.brandId), r = getRoom(s.roomId), temp = getTemplate(s.templateId);
+      return `<div class="mobile-card"><div class="shift-row"><div class="time">${temp.start}<br>${temp.end}</div><div><h3>${s.date}</h3><p class="muted small">${b.name} · ${r.name}</p>${statusBadge(s.status)}</div></div>${actions || ""}</div>`;
+    }
+    function renderMobileSchedule(mine) {
+      const items = mine.slice(0, 8).map((s) => mobileShiftCard(s, `<div class="mobile-actions"><button onclick="confirmShift('${s.id}')">${t("confirmed")}</button><button onclick="putSwapPool('${s.id}')">${t("putToPool")}</button></div>`)).join("");
+      return `<div class="mobile-card"><h3>${t("today")}</h3><p class="muted small">${getAnchor(mobileAnchorId).language} · ${getAnchor(mobileAnchorId).categories.join(", ")}</p></div>${items || `<div class="mobile-card muted">${t("noShift")}</div>`}`;
+    }
+    function renderMobileSwap(mine) {
+      const open = db.swaps.filter((sw) => sw.status === "open" && sw.fromAnchorId !== mobileAnchorId);
+      return `<div class="mobile-card"><h3>${t("swapPool")}</h3><p class="muted small">Only valid shifts should be taken.</p></div>${open.map((sw) => {
+        const s = db.schedules.find((x) => x.id === sw.scheduleId), temp = getTemplate(s.templateId), b = getBrand(s.brandId), from = getAnchor(sw.fromAnchorId);
+        const conflict = hasConflict(mobileAnchorId, s.date, s.templateId, s.id);
+        return `<div class="mobile-card"><p><b>${s.date} ${temp.start}-${temp.end}</b><br><span class="muted small">${b.name} · ${from ? from.name : "-"}</span></p><span class="badge ${conflict ? "amber" : "green"}">${conflict || "eligible"}</span><div class="mobile-actions"><button class="success" onclick="takeSwap('${sw.id}','${mobileAnchorId}')">${t("takeShift")}</button><button onclick="toast('已查看详情')">Details</button></div></div>`;
+      }).join("") || `<div class="mobile-card muted">${t("noShift")}</div>`}`;
+    }
+    function renderMobileLeave(mine) {
+      return `<div class="mobile-card"><h3>${t("leaveRequest")}</h3><label>Shift<select id="leaveSchedule">${mine.slice(0, 12).map((s) => {
+        const temp = getTemplate(s.templateId), b = getBrand(s.brandId);
+        return `<option value="${s.id}">${s.date} ${temp.start} ${b.name}</option>`;
+      }).join("")}</select></label><br><label>${t("reason")}<input id="leaveReason" value="Personal reason"></label><div class="mobile-actions"><button class="primary" onclick="submitLeave(document.getElementById('leaveSchedule').value, document.getElementById('leaveReason').value)">${t("submitLeave")}</button><button onclick="setMobileTab('schedule')">Cancel</button></div></div>`;
+    }
+    function renderMobileMessages(anchorId) {
+      const messages = db.messages.filter((m) => !m.anchorId || m.anchorId === anchorId).slice(-8).reverse();
+      return `<div class="mobile-card"><h3>${t("messages")}</h3></div>${messages.map((m) => `<div class="mobile-card"><b>${m.type}</b><br><span class="muted small">${m.text}</span></div>`).join("") || `<div class="mobile-card muted">No messages.</div>`}`;
+    }
+    function openModal(title, hint, body) {
+      document.getElementById("modalTitle").textContent = title;
+      document.getElementById("modalHint").textContent = hint || "";
+      document.getElementById("modalBody").innerHTML = body;
+      document.getElementById("modalBackdrop").classList.add("show");
+    }
+    function closeModal() {
+      document.getElementById("modalBackdrop").classList.remove("show");
+    }
+    function toast(message) {
+      const el = document.getElementById("toast");
+      el.textContent = message;
+      el.classList.add("show");
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => el.classList.remove("show"), 1900);
+    }
+    function exportDb() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "anchor-scheduler-db-" + new Date().toISOString().slice(0, 10) + ".json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("数据库 JSON 已导出");
+    }
+    function importDb(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        db = JSON.parse(reader.result);
+        saveDb();
+        toast("数据库已导入");
+        renderAll();
+      };
+      reader.readAsText(file);
+    }
+    function downloadCsv() {
+      const header = "name,country,timezone,language,categories,level,target_hours,status\n";
+      const rows = db.anchors.map((a) => [a.name, a.country, a.timezone, a.language, a.categories.join("|"), a.level, a.monthlyTargetHours, a.status].map((x) => `"${String(x).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "anchors.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("主播 CSV 已导出");
+    }
+    window.addEventListener("load", () => {
+      loadDb();
+      renderAll();
+      window.addEventListener("storage", (event) => {
+        if (event.key === DB_KEY) refreshDbIfChanged();
+      });
+      setInterval(refreshDbIfChanged, 1500);
+    });
+  </script>
+</body>
+</html>
