@@ -255,11 +255,36 @@
       setLoading(true);
       try {
         const res = await fetch(path, options);
-        const data = await res.json();
+        const body = await res.text();
+        let data;
+        try {
+          data = JSON.parse(body);
+        } catch (error) {
+          throw new Error(`API returned ${res.status}: ${body.slice(0, 80)}`);
+        }
         if (!data.ok) throw new Error(data.error || "API error");
         return data;
       } finally {
         setLoading(false);
+      }
+    }
+    async function anchorBootstrap() {
+      try {
+        return await api("/api/anchor-bootstrap");
+      } catch (error) {
+        const [anchors, schedules, declarations] = await Promise.all([
+          api("/api/data?type=anchors"),
+          api("/api/data?type=schedules"),
+          api("/api/data?type=declarations")
+        ]);
+        return {
+          ok: true,
+          records: {
+            anchors: anchors.records || [],
+            schedules: schedules.records || [],
+            declarations: declarations.records || []
+          }
+        };
       }
     }
     function saveAnchor() {
@@ -281,7 +306,7 @@
     }
     async function loadAll() {
       try {
-        const data = await api("/api/anchor-bootstrap");
+        const data = await anchorBootstrap();
         state.anchors = data.records.anchors;
         state.schedules = dedupeSchedules(data.records.schedules);
         state.declarations = data.records.declarations;
@@ -484,7 +509,7 @@
       } catch (e) { toast(e.message); }
     }
     async function refreshLiveData() {
-      const data = await api("/api/anchor-bootstrap");
+      const data = await anchorBootstrap();
       state.anchors = data.records.anchors;
       state.schedules = dedupeSchedules(data.records.schedules);
       state.declarations = data.records.declarations;
