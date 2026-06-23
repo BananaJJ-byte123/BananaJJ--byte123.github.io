@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/manager", "destination": "/manager-online.html" },
     { "source": "/anchor", "destination": "/anchor-online.html" },
+    { "source": "/admin", "destination": "/admin-online.html" },
     { "source": "/local-manager", "destination": "/manager.html" },
     { "source": "/local-anchor", "destination": "/anchor.html" }
   ]

@@ -104,7 +104,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { anchors: [], schedules: [], declarations: [], selectedSwapFrom: "", tab: "schedule" };
+    const state = { anchors: [], schedules: [], declarations: [], selectedSwapFrom: "", swapMode: "exchange", tab: "schedule" };
     const declarationValues = [
       { value:"请假", label:{ zh:"请假", en:"Leave", id:"Cuti" } },
       { value:"换班", label:{ zh:"换班", en:"Shift swap", id:"Tukar shift" } },
@@ -117,7 +117,7 @@
         date:"日期", originalShift:"原班次", startTime:"开始时间", endTime:"结束时间", reason:"原因/备注", submitButton:"提交给主管",
         required:"请填写主播姓名和日期", pickAnchor:"请先从主播名单中选择姓名", noAnchor:"未匹配到主播，请检查姓名", submitted:"已提交，主管会收到通知", saved:"已保存主播姓名", empty:"暂无排班", confirmed:"班次已确认",
         confirm:"确认班次", time:"时间", brand:"品牌", room:"直播间", status:"状态", swap:"发起换班", swapFrom:"我的班次", swapTo:"想换的对方班次",
-        submitSwap:"提交换班请求", incoming:"发给我的请求", outgoing:"我发起的请求", accept:"同意换班", reject:"拒绝", swapSent:"换班请求已发出", swapDone:"换班已完成"
+        submitSwap:"提交换班请求", incoming:"发给我的请求", outgoing:"我发起的请求", accept:"同意换班", reject:"拒绝", swapMode:"换班模式", exchange:"等价互换", cover:"单向代班", coverAnchor:"代班主播", swapSent:"换班请求已发出", swapDone:"换班已完成"
       },
       en: {
         title:"Anchor Self-Service", subtitle:"View schedules, confirm shifts, and submit leave or swap requests", anchorName:"Anchor name", saveName:"Save", refresh:"Refresh",
@@ -125,7 +125,7 @@
         date:"Date", originalShift:"Original shift", startTime:"Start time", endTime:"End time", reason:"Reason / notes", submitButton:"Submit to manager",
         required:"Please enter anchor name and date", pickAnchor:"Please select a name from the anchor list", noAnchor:"No matching anchor. Please check the name.", submitted:"Submitted. The manager will be notified.", saved:"Anchor name saved", empty:"No schedules yet", confirmed:"Shift confirmed",
         confirm:"Confirm shift", time:"Time", brand:"Brand", room:"Room", status:"Status", swap:"Request swap", swapFrom:"My shift", swapTo:"Target shift",
-        submitSwap:"Send swap request", incoming:"Requests to me", outgoing:"My requests", accept:"Accept swap", reject:"Reject", swapSent:"Swap request sent", swapDone:"Swap completed"
+        submitSwap:"Send swap request", incoming:"Requests to me", outgoing:"My requests", accept:"Accept swap", reject:"Reject", swapMode:"Swap mode", exchange:"Exchange", cover:"Cover shift", coverAnchor:"Cover anchor", swapSent:"Swap request sent", swapDone:"Swap completed"
       },
       id: {
         title:"Portal Anchor", subtitle:"Lihat jadwal, konfirmasi shift, dan kirim cuti atau tukar shift", anchorName:"Nama anchor", saveName:"Simpan", refresh:"Refresh",
@@ -133,7 +133,7 @@
         date:"Tanggal", originalShift:"Shift awal", startTime:"Waktu mulai", endTime:"Waktu selesai", reason:"Alasan / catatan", submitButton:"Kirim ke supervisor",
         required:"Mohon isi nama anchor dan tanggal", pickAnchor:"Pilih nama dari daftar anchor", noAnchor:"Anchor tidak ditemukan. Periksa nama.", submitted:"Terkirim. Supervisor akan menerima notifikasi.", saved:"Nama anchor tersimpan", empty:"Belum ada jadwal", confirmed:"Shift dikonfirmasi",
         confirm:"Konfirmasi shift", time:"Waktu", brand:"Brand", room:"Room", status:"Status", swap:"Minta tukar", swapFrom:"Shift saya", swapTo:"Shift tujuan",
-        submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", accept:"Setujui tukar", reject:"Tolak", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai"
+        submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", accept:"Setujui tukar", reject:"Tolak", swapMode:"Mode tukar", exchange:"Tukar setara", cover:"Pengganti", coverAnchor:"Anchor pengganti", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai"
       }
     };
     let currentLang = localStorage.getItem("uiLang") || "zh";
@@ -331,36 +331,52 @@
       const outgoing = requests.filter((item) => norm(field(item.record, "主播姓名")) === norm(name));
       const fromOptions = mine.map((r) => `<option value="${r.record_id}" ${state.selectedSwapFrom === r.record_id ? "selected" : ""}>${scheduleLabel(r)}</option>`).join("");
       const toOptions = others.map((r) => `<option value="${r.record_id}">${scheduleLabel(r)}</option>`).join("");
+      const anchorOptions = state.anchors
+        .filter((anchor) => norm(anchorName(anchor)) !== norm(name) && field(anchor, "状态") !== "停用")
+        .map((anchor) => `<option value="${anchorName(anchor)}">${anchorName(anchor)} · ${field(anchor, "语言")} · ${field(anchor, "擅长类目")}</option>`)
+        .join("");
       $("swapPanel").innerHTML = `
+        <label>${t().swapMode}<select id="swapMode" onchange="setSwapMode(this.value)"><option value="exchange" ${state.swapMode === "exchange" ? "selected" : ""}>${t().exchange}</option><option value="cover" ${state.swapMode === "cover" ? "selected" : ""}>${t().cover}</option></select></label>
         <label>${t().swapFrom}<select id="swapFrom">${fromOptions}</select></label>
-        <label>${t().swapTo}<select id="swapTo">${toOptions}</select></label>
+        <label id="swapToWrap">${t().swapTo}<select id="swapTo">${toOptions}</select></label>
+        <label id="coverAnchorWrap">${t().coverAnchor}<select id="coverAnchor">${anchorOptions}</select></label>
         <label>${t().reason}<textarea id="swapReason" placeholder="${t().reason}"></textarea></label>
         <button onclick="submitSwapRequest()">${t().submitSwap}</button>
         <div class="shift"><h3>${t().incoming}</h3>${incoming.map(renderSwapRequest).join("") || `<p class="muted">${t().empty}</p>`}</div>
         <div class="shift"><h3>${t().outgoing}</h3>${outgoing.map(renderSwapRequest).join("") || `<p class="muted">${t().empty}</p>`}</div>`;
+      const mode = state.swapMode;
+      $("swapToWrap").classList.toggle("hidden", mode !== "exchange");
+      $("coverAnchorWrap").classList.toggle("hidden", mode !== "cover");
+    }
+    function setSwapMode(mode) {
+      state.swapMode = mode;
+      renderSwap();
     }
     function renderSwapRequest(item) {
       const from = state.schedules.find((r) => r.record_id === item.meta.from);
       const to = state.schedules.find((r) => r.record_id === item.meta.to);
       const status = field(item.record, "状态");
       const isTarget = norm(item.meta.target) === norm(currentAnchorName());
+      const modeText = item.meta.mode === "cover" ? t().cover : t().exchange;
       return `<div class="shift">
-        <p class="small muted">${field(item.record, "主播姓名")} -> ${item.meta.target} · ${badge(status)}</p>
+        <p class="small muted">${field(item.record, "主播姓名")} -> ${item.meta.target} · ${modeText} · ${badge(status)}</p>
         <p><b>${from ? scheduleLabel(from) : item.meta.from}</b></p>
-        <p><b>${to ? scheduleLabel(to) : item.meta.to}</b></p>
+        <p><b>${to ? scheduleLabel(to) : `${t().coverAnchor}: ${item.meta.target}`}</b></p>
         ${isTarget && status === "待处理" ? `<div class="actions"><button class="good" onclick="acceptSwap('${item.record.record_id}')">${t().accept}</button><button class="secondary" onclick="rejectSwap('${item.record.record_id}')">${t().reject}</button></div>` : ""}
       </div>`;
     }
     async function submitSwapRequest() {
       try {
         const fromScheduleId = $("swapFrom")?.value;
+        const mode = state.swapMode || "exchange";
         const toScheduleId = $("swapTo")?.value;
+        const targetAnchorName = mode === "cover" ? $("coverAnchor")?.value : "";
         if (!currentAnchorName()) return toast(t().noAnchor);
-        if (!fromScheduleId || !toScheduleId) return toast(t().empty);
+        if (!fromScheduleId || (mode === "exchange" && !toScheduleId) || (mode === "cover" && !targetAnchorName)) return toast(t().empty);
         await api("/api/swap", {
           method:"POST",
           headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ action:"request", anchorName:currentAnchorName(), fromScheduleId, toScheduleId, reason:$("swapReason").value })
+          body:JSON.stringify({ action:"request", mode, anchorName:currentAnchorName(), targetAnchorName, fromScheduleId, toScheduleId, reason:$("swapReason").value })
         });
         toast(t().swapSent);
         await loadAll();

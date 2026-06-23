@@ -7,6 +7,9 @@ const {
   sendBotText,
   handleError
 } = require("./_feishu");
+const { audit } = require("./_audit");
+
+const LOCK_WINDOW_HOURS = 6;
 
 function f(record, name, fallback = "") {
   const value = record.fields?.[name];
@@ -23,6 +26,14 @@ function durationHours(schedule) {
   return Math.max(0, (minutes(f(schedule, "结束时间")) - minutes(f(schedule, "开始时间"))) / 60);
 }
 
+function startsWithinLock(schedule) {
+  const date = f(schedule, "日期");
+  const start = f(schedule, "开始时间", "00:00");
+  const startAt = new Date(`${date}T${start}:00+08:00`).getTime();
+  if (!Number.isFinite(startAt)) return false;
+  return startAt - Date.now() < LOCK_WINDOW_HOURS * 60 * 60 * 1000;
+}
+
 function parseMeta(text = "") {
   if (!text.startsWith("SWAP_REQUEST|")) return null;
   const meta = {};
@@ -34,7 +45,7 @@ function parseMeta(text = "") {
 }
 
 function buildMeta(data) {
-  return `SWAP_REQUEST|from=${encodeURIComponent(data.from)}|to=${encodeURIComponent(data.to)}|target=${encodeURIComponent(data.target || "")}|note=${encodeURIComponent(data.note || "")}`;
+  return `SWAP_REQUEST|mode=${encodeURIComponent(data.mode || "exchange")}|from=${encodeURIComponent(data.from)}|to=${encodeURIComponent(data.to || "")}|target=${encodeURIComponent(data.target || "")}|note=${encodeURIComponent(data.note || "")}`;
 }
 
 function findById(records, recordId) {
@@ -95,6 +106,13 @@ function swapPreview(schedules, fromScheduleId, toScheduleId, fromAnchorName, to
   });
 }
 
+function coverPreview(schedules, fromScheduleId, toAnchorName) {
+  return schedules.map((record) => {
+    if (record.record_id === fromScheduleId) return { ...record, fields: { ...record.fields, "主播姓名": toAnchorName } };
+    return record;
+  });
+}
+
 function validateSwap({ anchors, brands, schedules, fromSchedule, toSchedule, fromAnchorName, toAnchorName }) {
   const fromAnchor = findAnchor(anchors, fromAnchorName);
   const toAnchor = findAnchor(anchors, toAnchorName);
@@ -124,21 +142,25 @@ async function loadBase() {
 async function requestSwap(body) {
   const { anchors, brands, schedules } = await loadBase();
   const fromSchedule = findById(schedules, body.fromScheduleId);
-  const toSchedule = findById(schedules, body.toScheduleId);
-  if (!fromSchedule || !toSchedule) return { status: 400, data: { ok: false, error: "换班班次不存在" } };
+  const mode = body.mode || "exchange";
+  const toSchedule = body.toScheduleId ? findById(schedules, body.toScheduleId) : null;
+  if (!fromSchedule || (mode === "exchange" && !toSchedule)) return { status: 400, data: { ok: false, error: "换班班次不存在" } };
+  if (startsWithinLock(fromSchedule) || (toSchedule && startsWithinLock(toSchedule))) return { status: 400, data: { ok: false, error: `开播前 ${LOCK_WINDOW_HOURS} 小时内不能自助换班，请联系主管` } };
 
   const fromAnchorName = body.anchorName || f(fromSchedule, "主播姓名");
-  const toAnchorName = body.targetAnchorName || f(toSchedule, "主播姓名");
+  const toAnchorName = body.targetAnchorName || (toSchedule ? f(toSchedule, "主播姓名") : "");
   if (!fromAnchorName || !toAnchorName) return { status: 400, data: { ok: false, error: "缺少换班主播" } };
   if (f(fromSchedule, "主播姓名") !== fromAnchorName) return { status: 400, data: { ok: false, error: "发起人不是原班次主播" } };
   if (fromAnchorName === toAnchorName) return { status: 400, data: { ok: false, error: "不能和自己换班" } };
 
-  const preview = swapPreview(schedules, fromSchedule.record_id, toSchedule.record_id, fromAnchorName, toAnchorName);
+  const preview = mode === "cover"
+    ? coverPreview(schedules, fromSchedule.record_id, toAnchorName)
+    : swapPreview(schedules, fromSchedule.record_id, toSchedule.record_id, fromAnchorName, toAnchorName);
   const fromAnchor = findAnchor(anchors, fromAnchorName);
-  const toBrand = brandForSchedule(brands, toSchedule);
+  const toBrand = brandForSchedule(brands, mode === "cover" ? fromSchedule : toSchedule);
   const preCheck = anchorMatchesBrand(fromAnchor, toBrand);
-  if (!preCheck.ok) return { status: 400, data: { ok: false, error: `前置校验失败：${preCheck.reason}` } };
-  const workload = validateWorkload(fromAnchor, findById(preview, toSchedule.record_id), preview);
+  if (mode === "exchange" && !preCheck.ok) return { status: 400, data: { ok: false, error: `前置校验失败：${preCheck.reason}` } };
+  const workload = mode === "cover" ? { ok: true } : validateWorkload(fromAnchor, findById(preview, toSchedule.record_id), preview);
   if (!workload.ok) return { status: 400, data: { ok: false, error: `前置校验失败：${workload.reason}` } };
 
   const fields = {
@@ -148,12 +170,13 @@ async function requestSwap(body) {
     "日期": f(fromSchedule, "日期"),
     "开始时间": f(fromSchedule, "开始时间"),
     "结束时间": f(fromSchedule, "结束时间"),
-    "原班次": `${f(fromSchedule, "班次")} -> ${f(toSchedule, "班次")}`,
-    "原因": buildMeta({ from: fromSchedule.record_id, to: toSchedule.record_id, target: toAnchorName, note: body.reason || "" }),
+    "原班次": mode === "cover" ? `${f(fromSchedule, "班次")} 代班` : `${f(fromSchedule, "班次")} -> ${f(toSchedule, "班次")}`,
+    "原因": buildMeta({ mode, from: fromSchedule.record_id, to: toSchedule?.record_id || "", target: toAnchorName, note: body.reason || "" }),
     "状态": "待处理"
   };
   const created = await createRecords("declarations", [fields]);
-  await sendBotText(`【换班请求】${fromAnchorName} 申请与 ${toAnchorName} 互换 ${f(fromSchedule, "日期")} ${f(fromSchedule, "班次")} / ${f(toSchedule, "班次")}。`);
+  await sendBotText(`【换班请求】${fromAnchorName} 申请${mode === "cover" ? "由" : "与"} ${toAnchorName} ${mode === "cover" ? "代班" : "互换"} ${f(fromSchedule, "日期")} ${f(fromSchedule, "班次")}。`);
+  await audit("换班发起", `${fromAnchorName} -> ${toAnchorName}；模式：${mode === "cover" ? "代班" : "等价互换"}；班次：${f(fromSchedule, "日期")} ${f(fromSchedule, "班次")}`);
   return { status: 200, data: { ok: true, record: created[0] || null } };
 }
 
@@ -166,32 +189,40 @@ async function acceptSwap(body) {
   const meta = parseMeta(f(declaration, "原因"));
   if (!meta) return { status: 400, data: { ok: false, error: "旧换班申请缺少可执行信息，请重新发起" } };
   const fromSchedule = findById(schedules, meta.from);
-  const toSchedule = findById(schedules, meta.to);
-  if (!fromSchedule || !toSchedule) return { status: 400, data: { ok: false, error: "换班对应班次不存在" } };
+  const toSchedule = meta.to ? findById(schedules, meta.to) : null;
+  if (!fromSchedule || (meta.mode !== "cover" && !toSchedule)) return { status: 400, data: { ok: false, error: "换班对应班次不存在" } };
+  if (startsWithinLock(fromSchedule) || (toSchedule && startsWithinLock(toSchedule))) return { status: 400, data: { ok: false, error: `开播前 ${LOCK_WINDOW_HOURS} 小时内不能自助换班，请联系主管` } };
 
   const fromAnchorName = f(declaration, "主播姓名");
   const toAnchorName = body.anchorName || meta.target || f(toSchedule, "主播姓名");
   if (meta.target && toAnchorName !== meta.target) return { status: 403, data: { ok: false, error: "只有被邀请主播可以同意这个换班" } };
-  if (f(toSchedule, "主播姓名") !== toAnchorName) return { status: 400, data: { ok: false, error: "同意人不是目标班次当前主播" } };
+  if (meta.mode !== "cover" && f(toSchedule, "主播姓名") !== toAnchorName) return { status: 400, data: { ok: false, error: "同意人不是目标班次当前主播" } };
 
-  const validation = validateSwap({ anchors, brands, schedules, fromSchedule, toSchedule, fromAnchorName, toAnchorName });
+  const validation = meta.mode === "cover"
+    ? (() => {
+        const toAnchor = findAnchor(anchors, toAnchorName);
+        const brand = brandForSchedule(brands, fromSchedule);
+        const match = anchorMatchesBrand(toAnchor, brand);
+        if (!match.ok) return { ok: false, reason: `${toAnchorName} 接 ${f(fromSchedule, "品牌")} 班：${match.reason}` };
+        const preview = coverPreview(schedules, fromSchedule.record_id, toAnchorName);
+        const workload = validateWorkload(toAnchor, findById(preview, fromSchedule.record_id), preview);
+        return workload.ok ? { ok: true } : { ok: false, reason: `${toAnchorName} 工时：${workload.reason}` };
+      })()
+    : validateSwap({ anchors, brands, schedules, fromSchedule, toSchedule, fromAnchorName, toAnchorName });
   if (!validation.ok) return { status: 400, data: { ok: false, error: `二次校验失败：${validation.reason}` } };
 
-  const updates = [
-    {
-      record_id: fromSchedule.record_id,
-      fields: { "主播姓名": toAnchorName, "状态": "已发布", "备注": `已与 ${fromAnchorName} 完成换班` }
-    },
-    {
-      record_id: toSchedule.record_id,
-      fields: { "主播姓名": fromAnchorName, "状态": "已发布", "备注": `已与 ${toAnchorName} 完成换班` }
-    }
-  ];
+  const updates = meta.mode === "cover"
+    ? [{ record_id: fromSchedule.record_id, fields: { "主播姓名": toAnchorName, "状态": "已发布", "备注": `${toAnchorName} 代 ${fromAnchorName} 上班` } }]
+    : [
+        { record_id: fromSchedule.record_id, fields: { "主播姓名": toAnchorName, "状态": "已发布", "备注": `已与 ${fromAnchorName} 完成换班` } },
+        { record_id: toSchedule.record_id, fields: { "主播姓名": fromAnchorName, "状态": "已发布", "备注": `已与 ${toAnchorName} 完成换班` } }
+      ];
   const [scheduleUpdates, declarationUpdates] = await Promise.all([
     updateRecords("schedules", updates),
     updateRecords("declarations", [{ record_id: declaration.record_id, fields: { "状态": "已同意" } }])
   ]);
-  await sendBotText(`【换班动态】主播 ${fromAnchorName} 与主播 ${toAnchorName} 已完成 ${f(fromSchedule, "日期")} 班次互换，请知悉。`);
+  await sendBotText(`【换班动态】主播 ${fromAnchorName} 与主播 ${toAnchorName} 已完成 ${f(fromSchedule, "日期")} ${meta.mode === "cover" ? "代班" : "班次互换"}，请知悉。`);
+  await audit("换班完成", `${fromAnchorName} / ${toAnchorName}；模式：${meta.mode === "cover" ? "代班" : "等价互换"}；日期：${f(fromSchedule, "日期")}`);
   return { status: 200, data: { ok: true, schedules: scheduleUpdates.length, declarations: declarationUpdates.length } };
 }
 

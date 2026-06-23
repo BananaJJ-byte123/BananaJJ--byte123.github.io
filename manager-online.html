@@ -72,6 +72,7 @@
         <option value="en">English</option>
         <option value="id">Bahasa</option>
       </select>
+      <button onclick="location.href='./admin-online.html'">管理员端</button>
       <button onclick="location.href='./anchor-online.html'" data-i18n="openAnchor">打开主播入口</button>
     </div>
   </header>
@@ -116,7 +117,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { anchors: [], brands: [], templates: [], declarations: [], schedules: [], tab: "dashboard", loading: 0, scheduleSort: { key:"日期", dir:"desc" } };
+    const state = { anchors: [], brands: [], templates: [], declarations: [], schedules: [], workload: [], tab: "dashboard", loading: 0, scheduleSort: { key:"日期", dir:"desc" } };
     const field = (r, name) => r.fields?.[name] ?? "";
     const today = () => new Date().toISOString().slice(0, 10);
     const i18n = {
@@ -126,7 +127,7 @@
         tabDashboard:"今日大盘", tabCalendar:"日历", tabSchedules:"排班", tabSwaps:"换班池", tabDeclarations:"申报", tabAnchors:"主播",
         healthTitle:"系统状态", empty:"暂无数据", generating:"正在生成...", publishing:"正在发布...", refreshed:"已刷新", published:"已发布草稿", approved:"已同意", rejected:"已拒绝", confirmed:"已确认",
         stats:["主播","品牌/直播间","待处理申报","排班结果"], risk:"风险班次", swapHint:"主播互换班次后，系统会自动改写两条排班并通知主管。", dashboardHint:"主管看全盘、生成排班、发布班表、处理申报。",
-        autoPanel:"自动排班", manualPanel:"手动指定排班", oneDay:"只排这一天", oneWeek:"排 1 周", twoWeeks:"排 2 周", manualCreate:"添加手动排班", anchor:"主播", brand:"品牌", room:"直播间", shift:"班次", startTime:"开始时间", endTime:"结束时间", note:"备注", created:"已添加手动排班",
+        autoPanel:"自动排班", manualPanel:"手动指定排班", oneDay:"只排这一天", oneWeek:"排 1 周", twoWeeks:"排 2 周", monthSchedule:"排整月", workload:"月度工时", weeklyAudit:"生成每周留痕", manualCreate:"添加手动排班", anchor:"主播", brand:"品牌", room:"直播间", shift:"班次", startTime:"开始时间", endTime:"结束时间", note:"备注", created:"已添加手动排班",
         columns:{schedule:["日期","班次","时间","主播","品牌","直播间","状态","备注","操作"], declaration:["主播","类型","日期","时间","原因","状态","操作"], anchor:["主播ID","姓名","语言","国家","时区","类目","等级","状态"]},
         actions:{publish:"发布", confirm:"确认", approve:"同意", reject:"拒绝", forceComplete:"主管完成换班"}, generated:(count,missing)=>`已生成 ${count} 条，缺人 ${missing} 条`
       },
@@ -136,7 +137,7 @@
         tabDashboard:"Dashboard", tabCalendar:"Calendar", tabSchedules:"Schedules", tabSwaps:"Swap pool", tabDeclarations:"Requests", tabAnchors:"Anchors",
         healthTitle:"System Status", empty:"No data", generating:"Generating...", publishing:"Publishing...", refreshed:"Refreshed", published:"Drafts published", approved:"Approved", rejected:"Rejected", confirmed:"Confirmed",
         stats:["Anchors","Brands / rooms","Pending requests","Schedules"], risk:"Risk shifts", swapHint:"When anchors complete a swap, the system rewrites both schedules and notifies the manager.", dashboardHint:"Review workload, generate schedules, publish shifts, and process requests.",
-        autoPanel:"Auto scheduling", manualPanel:"Manual assignment", oneDay:"Only this day", oneWeek:"1 week", twoWeeks:"2 weeks", manualCreate:"Add manual shift", anchor:"Anchor", brand:"Brand", room:"Room", shift:"Shift", startTime:"Start time", endTime:"End time", note:"Note", created:"Manual shift added",
+        autoPanel:"Auto scheduling", manualPanel:"Manual assignment", oneDay:"Only this day", oneWeek:"1 week", twoWeeks:"2 weeks", monthSchedule:"Full month", workload:"Monthly workload", weeklyAudit:"Generate weekly audit", manualCreate:"Add manual shift", anchor:"Anchor", brand:"Brand", room:"Room", shift:"Shift", startTime:"Start time", endTime:"End time", note:"Note", created:"Manual shift added",
         columns:{schedule:["Date","Shift","Time","Anchor","Brand","Room","Status","Notes","Actions"], declaration:["Anchor","Type","Date","Time","Reason","Status","Actions"], anchor:["ID","Name","Language","Country","TZ","Category","Level","Status"]},
         actions:{publish:"Publish", confirm:"Confirm", approve:"Approve", reject:"Reject", forceComplete:"Complete swap"}, generated:(count,missing)=>`Generated ${count} rows, missing ${missing}`
       },
@@ -146,7 +147,7 @@
         tabDashboard:"Dashboard", tabCalendar:"Kalender", tabSchedules:"Jadwal", tabSwaps:"Pool tukar", tabDeclarations:"Permintaan", tabAnchors:"Anchor",
         healthTitle:"Status Sistem", empty:"Belum ada data", generating:"Membuat jadwal...", publishing:"Mempublikasikan...", refreshed:"Data diperbarui", published:"Draft dipublikasikan", approved:"Disetujui", rejected:"Ditolak", confirmed:"Dikonfirmasi",
         stats:["Anchor","Brand / room","Permintaan pending","Jadwal"], risk:"Shift berisiko", swapHint:"Saat swap selesai, sistem memperbarui dua jadwal dan memberi tahu supervisor.", dashboardHint:"Pantau jadwal, buat jadwal, publikasikan shift, dan proses permintaan.",
-        autoPanel:"Jadwal otomatis", manualPanel:"Assign manual", oneDay:"Hari ini saja", oneWeek:"1 minggu", twoWeeks:"2 minggu", manualCreate:"Tambah shift manual", anchor:"Anchor", brand:"Brand", room:"Room", shift:"Shift", startTime:"Mulai", endTime:"Selesai", note:"Catatan", created:"Shift manual ditambahkan",
+        autoPanel:"Jadwal otomatis", manualPanel:"Assign manual", oneDay:"Hari ini saja", oneWeek:"1 minggu", twoWeeks:"2 minggu", monthSchedule:"Sebulan", workload:"Jam bulanan", weeklyAudit:"Buat audit mingguan", manualCreate:"Tambah shift manual", anchor:"Anchor", brand:"Brand", room:"Room", shift:"Shift", startTime:"Mulai", endTime:"Selesai", note:"Catatan", created:"Shift manual ditambahkan",
         columns:{schedule:["Tanggal","Shift","Waktu","Anchor","Brand","Room","Status","Catatan","Aksi"], declaration:["Anchor","Tipe","Tanggal","Waktu","Alasan","Status","Aksi"], anchor:["ID","Nama","Bahasa","Negara","TZ","Kategori","Level","Status"]},
         actions:{publish:"Publish", confirm:"Konfirmasi", approve:"Setujui", reject:"Tolak", forceComplete:"Selesaikan swap"}, generated:(count,missing)=>`Berhasil membuat ${count} baris, kekurangan ${missing}`
       }
@@ -226,6 +227,34 @@
     function generateQuick(days) {
       $("days").value = days;
       generateSchedule();
+    }
+    async function generateMonthSchedule() {
+      try {
+        const month = ($("startDate").value || today()).slice(0, 7);
+        toast(t().generating);
+        const data = await api("/api/generate", {
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({ month })
+        });
+        toast(t().generated(data.count, data.missing));
+        await refreshSchedulesOnly();
+        await loadWorkload();
+      } catch (e) { toast(e.message); }
+    }
+    async function loadWorkload() {
+      try {
+        const month = ($("startDate").value || today()).slice(0, 7);
+        const data = await api(`/api/workload?month=${month}`);
+        state.workload = data.records;
+        if (state.tab === "dashboard" || state.tab === "schedules") render();
+      } catch (e) { toast(e.message); }
+    }
+    async function generateWeeklyAudit() {
+      try {
+        const data = await api(`/api/audit-weekly?from=${$("startDate").value || today()}`);
+        toast(`已生成周留痕：${data.count} 条`);
+      } catch (e) { toast(e.message); }
     }
     async function createManualSchedule() {
       try {
@@ -484,6 +513,9 @@
         <button class="primary" onclick="generateQuick(1)">${t().oneDay}</button>
         <button onclick="generateQuick(7)">${t().oneWeek}</button>
         <button onclick="generateQuick(14)">${t().twoWeeks}</button>
+        <button onclick="generateMonthSchedule()">${t().monthSchedule}</button>
+        <button onclick="loadWorkload()">${t().workload}</button>
+        <button onclick="generateWeeklyAudit()">${t().weeklyAudit}</button>
       </div></section>
       <section class="panel"><h2>${t().manualPanel}</h2><div class="toolbar">
         <label>${t().startDate}<input id="manualDate" type="date" value="${$("startDate").value || today()}"></label>
@@ -497,7 +529,12 @@
         <label>${t().note}<input id="manualNote" value="主管手动指定"></label>
         <button class="primary" onclick="createManualSchedule()">${t().manualCreate}</button>
       </div></section>
+      <section class="panel"><h2>${t().workload}</h2>${workloadRows()}</section>
       <section class="panel"><h2>${t().tabSchedules}</h2>${scheduleRows(sortSchedules(filteredSchedules()).slice(0, 160))}</section>`;
+    }
+    function workloadRows() {
+      if (!state.workload.length) return `<p class="muted">${t().empty}</p>`;
+      return `<div class="table-wrap"><table><thead><tr><th>主播</th><th>语言</th><th>等级</th><th>目标工时</th><th>已排工时</th><th>剩余/超出</th><th>场次</th></tr></thead><tbody>${state.workload.map((r) => `<tr class="${r.balanceHours < 0 ? "pending-row" : ""}"><td>${r.name}</td><td>${r.language}</td><td>${r.level}</td><td>${r.targetHours}</td><td>${r.scheduledHours}</td><td>${r.balanceHours}</td><td>${r.shifts}</td></tr>`).join("")}</tbody></table></div>`;
     }
     function renderDeclarations() {
       $("declarationsView").innerHTML = `<section class="panel"><h2>${t().tabDeclarations}</h2>${declarationRows(state.declarations.slice().sort(byStatusThenDate).slice(0, 160))}</section>`;

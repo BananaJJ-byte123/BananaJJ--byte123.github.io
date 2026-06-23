@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>系统管理员端</title>
+  <style>
+    :root{--bg:#f5f7fb;--card:#fff;--ink:#111827;--muted:#667085;--line:#d8dee8;--blue:#2563eb;--green:#16845b;--red:#c24141;--dark:#101828}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,"Microsoft YaHei",sans-serif}
+    header{background:var(--dark);color:#fff;padding:16px 22px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    main{max-width:1280px;margin:0 auto;padding:16px} h1,h2,p{margin-top:0} h1{font-size:20px;margin-bottom:4px} h2{font-size:18px}
+    button,input,select{font:inherit} button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:9px 12px;cursor:pointer;min-height:38px;font-weight:800}
+    button.primary{background:var(--blue);border-color:var(--blue);color:#fff} button.good{color:var(--green);border-color:#bfe8d3;background:#f1fbf6}
+    input,select{border:1px solid var(--line);border-radius:6px;padding:9px 10px;width:100%;background:#fff}
+    label{display:grid;gap:6px;font-size:12px;color:#475467;font-weight:700}.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px}
+    .tabs,.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.tab.active{background:#e8efff;color:#1849b8;border-color:#b7c7ff}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.muted{color:var(--muted)}.small{font-size:12px}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff}table{border-collapse:collapse;width:100%;min-width:900px}th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;white-space:nowrap;font-size:13px}th{background:#f8fafc;color:#475467}
+    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:.2s;max-width:92vw}.toast.show{opacity:1}
+    @media(max-width:760px){header{display:block}.grid{grid-template-columns:1fr}.toolbar{display:grid}}
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>系统管理员端</h1><p class="small" style="color:#cbd5e1;margin:0">基础数据配置：主播、品牌、班次模板</p></div>
+    <div class="toolbar"><button onclick="location.href='./manager-online.html'">主管端</button><button onclick="loadAll()">刷新</button></div>
+  </header>
+  <main>
+    <nav class="tabs panel">
+      <button class="tab active" data-tab="anchors" onclick="setTab('anchors')">主播档案</button>
+      <button class="tab" data-tab="brands" onclick="setTab('brands')">品牌项目</button>
+      <button class="tab" data-tab="templates" onclick="setTab('templates')">班次模板</button>
+    </nav>
+    <section id="formView" class="panel"></section>
+    <section id="listView" class="panel"></section>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script>
+    const $=(id)=>document.getElementById(id);
+    const state={tab:"anchors",anchors:[],brands:[],templates:[]};
+    const configs={
+      anchors:{title:"主播档案",fields:["主播ID","姓名","英文名","飞书用户","语言","国家","时区","擅长类目","等级","月目标工时","每日最多场次","状态"],selects:{语言:["English","Bahasa Indonesia"],等级:["A","B","C"],状态:["正常","停用"]}},
+      brands:{title:"品牌项目",fields:["品牌ID","品牌名","类目","需要语言","直播间名称","优先级","状态"],selects:{需要语言:["English","Bahasa Indonesia"],状态:["启用","停用"]}},
+      templates:{title:"班次模板",fields:["班次ID","班次名称","开始时间","结束时间","默认时长","状态"],selects:{状态:["启用","停用"]}}
+    };
+    function field(r,n){return r.fields?.[n]??""}
+    function toast(text){const el=$("toast");el.textContent=text;el.classList.add("show");clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove("show"),1800)}
+    async function api(path,options){const res=await fetch(path,options);const data=await res.json();if(!data.ok)throw new Error(data.error||"API error");return data}
+    async function loadAll(){try{const data=await api("/api/bootstrap");Object.assign(state,data.records);render()}catch(e){toast(e.message)}}
+    function setTab(tab){state.tab=tab;document.querySelectorAll(".tab").forEach(el=>el.classList.toggle("active",el.dataset.tab===tab));render()}
+    function inputFor(name){const cfg=configs[state.tab];if(cfg.selects[name])return `<select id="f-${name}">${cfg.selects[name].map(v=>`<option>${v}</option>`).join("")}</select>`;const type=name.includes("时间")?"time":name.includes("工时")||name.includes("场次")||name.includes("优先级")||name.includes("时长")?"number":"text";return `<input id="f-${name}" type="${type}">`}
+    function renderForm(){const cfg=configs[state.tab];$("formView").innerHTML=`<h2>新增${cfg.title}</h2><div class="grid">${cfg.fields.map(name=>`<label>${name}${inputFor(name)}</label>`).join("")}</div><br><button class="primary" onclick="createRecord()">新增</button>`}
+    function renderList(){const cfg=configs[state.tab];const rows=state[state.tab]||[];$("listView").innerHTML=`<h2>${cfg.title}列表</h2><div class="table-wrap"><table><thead><tr>${cfg.fields.map(f=>`<th>${f}</th>`).join("")}<th>操作</th></tr></thead><tbody>${rows.map(r=>`<tr>${cfg.fields.map(f=>`<td>${field(r,f)}</td>`).join("")}<td><button class="good" onclick="toggleStatus('${r.record_id}')">切换状态</button></td></tr>`).join("")||`<tr><td colspan="${cfg.fields.length+1}" class="muted">暂无数据</td></tr>`}</tbody></table></div>`}
+    function render(){renderForm();renderList()}
+    async function createRecord(){try{const cfg=configs[state.tab];const fields={};cfg.fields.forEach(name=>fields[name]=$(`f-${name}`).value);await api("/api/admin-data",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({type:state.tab,fields})});toast("已新增");await loadAll()}catch(e){toast(e.message)}}
+    async function toggleStatus(recordId){try{const current=(state[state.tab]||[]).find(r=>r.record_id===recordId);const old=field(current,"状态");const next=old==="停用"?"正常":old==="正常"?"停用":old==="启用"?"停用":"启用";await api("/api/update",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({type:state.tab,recordId,fields:{"状态":next}})});current.fields["状态"]=next;render();toast("已更新") }catch(e){toast(e.message)}}
+    loadAll();
+  </script>
+</body>
+</html>

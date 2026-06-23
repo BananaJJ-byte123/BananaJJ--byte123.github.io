@@ -1,4 +1,5 @@
 const { json, readJson, listRecords, createRecords, sendBotText, handleError } = require("./_feishu");
+const { audit } = require("./_audit");
 
 function f(record, name, fallback = "") {
   const value = record.fields?.[name];
@@ -18,6 +19,20 @@ function buildDateRange(startDate, days) {
   return result;
 }
 
+function buildMonthRange(month) {
+  const [year, monthIndex] = month.split("-").map(Number);
+  const first = new Date(Date.UTC(year, monthIndex - 1, 1));
+  const next = new Date(Date.UTC(year, monthIndex, 1));
+  const days = Math.round((next - first) / 86400000);
+  return buildDateRange(`${month}-01`, days);
+}
+
+function durationHours(start, end) {
+  const [sh, sm] = String(start || "00:00").split(":").map(Number);
+  const [eh, em] = String(end || "00:00").split(":").map(Number);
+  return Math.max(0, ((eh * 60 + (em || 0)) - (sh * 60 + (sm || 0))) / 60);
+}
+
 function hasDeclarationBlock(anchorName, date, declarations) {
   return declarations.some((item) => {
     const type = f(item, "申报类型");
@@ -26,7 +41,7 @@ function hasDeclarationBlock(anchorName, date, declarations) {
   });
 }
 
-function pickAnchor({ anchors, brand, date, template, declarations, assigned }) {
+function pickAnchor({ anchors, brand, date, template, declarations, assigned, monthlyHours }) {
   const language = f(brand, "需要语言");
   const category = f(brand, "类目");
   const start = Number(f(template, "开始时间", "09:00").slice(0, 2));
@@ -45,6 +60,9 @@ function pickAnchor({ anchors, brand, date, template, declarations, assigned }) 
       if (f(anchor, "擅长类目").includes(category)) score += 40;
       if (f(anchor, "等级") === "A") score += 20;
       if (f(anchor, "等级") === "B") score += 10;
+      const targetHours = Number(f(anchor, "月目标工时", "0")) || 0;
+      const remainingHours = targetHours - (monthlyHours[name] || 0);
+      score += Math.max(-30, Math.min(30, remainingHours));
       score -= assigned.filter((item) => item.anchorName === name).length * 3;
       return { anchor, score };
     })
@@ -58,28 +76,38 @@ module.exports = async function handler(req, res) {
   try {
     const body = await readJson(req);
     const startDate = body.startDate || new Date().toISOString().slice(0, 10);
-    const days = Math.max(1, Math.min(31, Number(body.days || 7)));
+    const dates = body.month ? buildMonthRange(body.month) : buildDateRange(startDate, Math.max(1, Math.min(31, Number(body.days || 7))));
+    const month = body.month || dates[0].slice(0, 7);
 
-    const [anchors, brands, templates, declarations] = await Promise.all([
+    const [anchors, brands, templates, declarations, existingSchedules] = await Promise.all([
       listRecords("anchors"),
       listRecords("brands"),
       listRecords("templates"),
-      listRecords("declarations")
+      listRecords("declarations"),
+      listRecords("schedules")
     ]);
 
-    const dates = buildDateRange(startDate, days);
     const assigned = [];
+    const monthlyHours = {};
+    for (const item of existingSchedules) {
+      const name = f(item, "主播姓名");
+      if (name && f(item, "日期").startsWith(month) && f(item, "状态") !== "缺人") {
+        monthlyHours[name] = (monthlyHours[name] || 0) + durationHours(f(item, "开始时间"), f(item, "结束时间"));
+      }
+    }
     const schedules = [];
     let missing = 0;
 
     for (const date of dates) {
       for (const brand of brands) {
         for (const template of templates) {
-          const anchor = pickAnchor({ anchors, brand, date, template, declarations, assigned });
+          const anchor = pickAnchor({ anchors, brand, date, template, declarations, assigned, monthlyHours });
           const startTime = f(template, "开始时间");
           const endTime = f(template, "结束时间");
           if (anchor) {
-            assigned.push({ anchorName: f(anchor, "姓名"), date, startHour: Number(startTime.slice(0, 2)) });
+            const name = f(anchor, "姓名");
+            assigned.push({ anchorName: name, date, startHour: Number(startTime.slice(0, 2)) });
+            monthlyHours[name] = (monthlyHours[name] || 0) + durationHours(startTime, endTime);
           } else {
             missing += 1;
           }
@@ -100,7 +128,8 @@ module.exports = async function handler(req, res) {
     }
 
     const created = await createRecords("schedules", schedules);
-    await sendBotText(`排班草稿已生成：${startDate} 起 ${days} 天，共 ${schedules.length} 条，缺人 ${missing} 条。请主管查看排班结果表。`);
+    await sendBotText(`排班草稿已生成：${dates[0]} 起 ${dates.length} 天，共 ${schedules.length} 条，缺人 ${missing} 条。请主管查看排班结果表。`);
+    await audit("自动排班", `范围：${dates[0]} 至 ${dates[dates.length - 1]}；生成：${schedules.length}；缺人：${missing}`);
     json(res, 200, { ok: true, count: schedules.length, missing, created: created.length });
   } catch (error) {
     handleError(res, error);

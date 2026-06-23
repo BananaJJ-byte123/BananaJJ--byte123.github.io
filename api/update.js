@@ -1,9 +1,13 @@
 const { json, readJson, updateRecords, sendBotText, handleError } = require("./_feishu");
+const { audit } = require("./_audit");
 
-const allowed = new Set(["declarations", "schedules"]);
+const allowed = new Set(["declarations", "schedules", "anchors", "brands", "templates"]);
 const writableFields = {
   declarations: new Set(["状态", "原因", "原班次", "开始时间", "结束时间", "日期", "申报类型", "主播姓名"]),
-  schedules: new Set(["状态", "备注", "主播姓名", "日期", "班次", "开始时间", "结束时间", "品牌", "直播间"])
+  schedules: new Set(["状态", "备注", "主播姓名", "日期", "班次", "开始时间", "结束时间", "品牌", "直播间"]),
+  anchors: new Set(["主播ID", "姓名", "英文名", "飞书用户", "语言", "国家", "时区", "擅长类目", "等级", "月目标工时", "每日最多场次", "状态"]),
+  brands: new Set(["品牌ID", "品牌名", "类目", "需要语言", "直播间名称", "优先级", "状态"]),
+  templates: new Set(["班次ID", "班次名称", "开始时间", "结束时间", "默认时长", "状态"])
 };
 
 function cleanFields(type, fields = {}) {
@@ -31,6 +35,7 @@ module.exports = async function handler(req, res) {
 
     const updated = await updateRecords(type, updates);
     if (body.notifyText) await sendBotText(body.notifyText);
+    await audit("数据更新", `类型：${type}；记录数：${updates.length}；字段：${[...new Set(updates.flatMap((item) => Object.keys(item.fields)))].join(", ")}`);
     json(res, 200, { ok: true, updated: updated.length, records: updated });
   } catch (error) {
     handleError(res, error);
