@@ -8,6 +8,7 @@
     :root { --bg:#f5f7fb; --card:#fff; --ink:#111827; --muted:#667085; --line:#d8dee8; --blue:#2563eb; --green:#16845b; --amber:#b7791f; --dark:#101828; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--ink); font-family:Arial,"Microsoft YaHei",sans-serif; }
+    body.loading, body.loading * { cursor:progress !important; }
     .shell { max-width:760px; min-height:100vh; margin:0 auto; background:#f7f8fb; }
     header { background:var(--dark); color:#fff; padding:18px; }
     .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
@@ -43,6 +44,9 @@
     .green { background:#e8f7ef; color:#106b49; } .amber { background:#fff4df; color:#99610f; } .blue { background:#e8efff; color:#1849b8; }
     .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--dark); color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; max-width:90vw; }
     .toast.show { opacity:1; }
+    .loading-bar { position:fixed; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,var(--blue),var(--green),var(--amber)); transform:scaleX(0); transform-origin:left; opacity:0; transition:opacity .15s; z-index:50; animation:loadingMove 1.1s ease-in-out infinite; }
+    body.loading .loading-bar { opacity:1; }
+    @keyframes loadingMove { 0%{transform:scaleX(.08)} 50%{transform:scaleX(.72)} 100%{transform:scaleX(1)} }
     .hidden { display:none; }
     .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
     @media (max-width:560px){ .grid,.tabs{grid-template-columns:1fr;} .shift-head{display:block;} }
@@ -103,10 +107,11 @@
     </main>
   </div>
   <div class="toast" id="toast"></div>
+  <div class="loading-bar" aria-hidden="true"></div>
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { anchors: [], schedules: [], declarations: [], selectedSwapFrom: "", swapMode: "exchange", activeSuggestion: 0, tab: "schedule" };
+    const state = { anchors: [], schedules: [], declarations: [], selectedSwapFrom: "", swapMode: "exchange", activeSuggestion: 0, tab: "schedule", loading: 0 };
     const declarationValues = [
       { value:"请假", label:{ zh:"请假", en:"Leave", id:"Cuti" } },
       { value:"换班", label:{ zh:"换班", en:"Shift swap", id:"Tukar shift" } },
@@ -177,15 +182,13 @@
     }
     function handleAnchorInput() {
       renderAnchorSuggestions();
-      renderSchedule();
-      renderSwap();
+      render();
     }
     function selectAnchorName(name) {
       $("anchorName").value = name;
       $("anchorSuggestions").innerHTML = "";
       localStorage.setItem("anchorName", name);
-      renderSchedule();
-      renderSwap();
+      render();
     }
     function suggestionItems() {
       return [...$("anchorSuggestions").querySelectorAll(".suggestion")];
@@ -237,18 +240,27 @@
       const selected = $("type").value || "请假";
       $("type").innerHTML = declarationValues.map((item) => `<option value="${item.value}">${item.label[lang]}</option>`).join("");
       $("type").value = selected;
-      renderSchedule();
-      renderSwap();
+      render();
     }
     function toast(text) {
       const el = $("toast"); el.textContent = text; el.classList.add("show");
       clearTimeout(window.__toast); window.__toast = setTimeout(() => el.classList.remove("show"), 1800);
     }
+    function setLoading(active) {
+      state.loading += active ? 1 : -1;
+      if (state.loading < 0) state.loading = 0;
+      document.body.classList.toggle("loading", state.loading > 0);
+    }
     async function api(path, options) {
-      const res = await fetch(path, options);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "API error");
-      return data;
+      setLoading(true);
+      try {
+        const res = await fetch(path, options);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "API error");
+        return data;
+      } finally {
+        setLoading(false);
+      }
     }
     function saveAnchor() {
       const name = currentAnchorName();
@@ -257,7 +269,7 @@
       $("anchorSuggestions").innerHTML = "";
       localStorage.setItem("anchorName", name);
       toast(t().saved);
-      loadAll();
+      render();
     }
     function setTab(tab) {
       state.tab = tab;
@@ -265,21 +277,16 @@
       $("scheduleView").classList.toggle("hidden", tab !== "schedule");
       $("swapView").classList.toggle("hidden", tab !== "swap");
       $("requestView").classList.toggle("hidden", tab !== "request");
-      renderSwap();
+      render();
     }
     async function loadAll() {
       try {
-        const [anchors, schedules, declarations] = await Promise.all([
-          api("/api/data?type=anchors"),
-          api("/api/data?type=schedules"),
-          api("/api/data?type=declarations")
-        ]);
-        state.anchors = anchors.records;
-        state.schedules = dedupeSchedules(schedules.records);
-        state.declarations = declarations.records;
+        const data = await api("/api/anchor-bootstrap");
+        state.anchors = data.records.anchors;
+        state.schedules = dedupeSchedules(data.records.schedules);
+        state.declarations = data.records.declarations;
         renderAnchorSuggestions();
-        renderSchedule();
-        renderSwap();
+        render();
       } catch (e) { toast(e.message); }
     }
     function badge(status) {
@@ -322,6 +329,10 @@
           </div>
         </article>`;
       }).join("");
+    }
+    function render() {
+      if (state.tab === "schedule") renderSchedule();
+      if (state.tab === "swap") renderSwap();
     }
     function parseSwapMeta(text) {
       if (!text || !text.startsWith("SWAP_REQUEST|")) return null;
@@ -407,7 +418,7 @@
           body:JSON.stringify({ action:"request", mode, anchorName:currentAnchorName(), targetAnchorName, fromScheduleId, toScheduleId, reason:$("swapReason").value })
         });
         toast(t().swapSent);
-        await loadAll();
+        await refreshLiveData();
       } catch (e) { toast(e.message); }
     }
     async function acceptSwap(declarationRecordId) {
@@ -418,7 +429,7 @@
           body:JSON.stringify({ action:"accept", declarationRecordId, anchorName:currentAnchorName() })
         });
         toast(t().swapDone);
-        await loadAll();
+        await refreshLiveData();
       } catch (e) { toast(e.message); }
     }
     async function rejectSwap(declarationRecordId) {
@@ -429,7 +440,9 @@
           body:JSON.stringify({ action:"reject", declarationRecordId })
         });
         toast(t().submitted);
-        await loadAll();
+        const record = state.declarations.find((item) => item.record_id === declarationRecordId);
+        if (record) record.fields["状态"] = "已拒绝";
+        render();
       } catch (e) { toast(e.message); }
     }
     async function confirmShift(recordId) {
@@ -439,8 +452,10 @@
           headers:{ "content-type":"application/json" },
           body:JSON.stringify({ type:"schedules", recordId, fields:{ "状态":"已确认" }, notifyText:"主播已确认班次。" })
         });
+        const record = state.schedules.find((item) => item.record_id === recordId);
+        if (record) record.fields["状态"] = "已确认";
         toast(t().confirmed);
-        await loadAll();
+        render();
       } catch (e) { toast(e.message); }
     }
     async function submitDeclaration() {
@@ -465,8 +480,15 @@
         toast(t().submitted);
         $("reason").value = "";
         setTab("schedule");
-        await loadAll();
+        await refreshLiveData();
       } catch (e) { toast(e.message); }
+    }
+    async function refreshLiveData() {
+      const data = await api("/api/anchor-bootstrap");
+      state.anchors = data.records.anchors;
+      state.schedules = dedupeSchedules(data.records.schedules);
+      state.declarations = data.records.declarations;
+      render();
     }
     function bindAnchorSuggestionPicker() {
       const box = $("anchorSuggestions");
