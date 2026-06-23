@@ -168,7 +168,7 @@
         const name = anchorName(anchor);
         const english = anchorEnglishName(anchor);
         const meta = [field(anchor, "语言"), field(anchor, "国家"), field(anchor, "擅长类目")].filter(Boolean).join(" · ");
-        return `<button type="button" class="suggestion" onmousedown="selectAnchorName(${jsArg(name)})">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></button>`;
+        return `<button type="button" class="suggestion" onpointerdown="selectAnchorEvent(event, ${jsArg(name)})" onclick="selectAnchorName(${jsArg(name)})">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></button>`;
       }).join("");
     }
     function handleAnchorInput() {
@@ -182,6 +182,10 @@
       localStorage.setItem("anchorName", name);
       renderSchedule();
       renderSwap();
+    }
+    function selectAnchorEvent(event, name) {
+      event.preventDefault();
+      selectAnchorName(name);
     }
     function currentAnchorName() {
       return resolveAnchorName($("anchorName").value);

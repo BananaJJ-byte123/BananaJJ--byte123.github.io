@@ -11,6 +11,7 @@
     }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Arial,"Microsoft YaHei",sans-serif; color:var(--ink); background:var(--bg); }
+    body.loading, body.loading * { cursor:progress !important; }
     header { background:var(--dark); color:#fff; padding:16px 22px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
     h1,h2,h3,p { margin-top:0; } h1 { font-size:20px; margin-bottom:4px; } h2 { font-size:18px; } h3 { font-size:15px; margin-bottom:8px; }
     button,input,select { font:inherit; }
@@ -35,6 +36,8 @@
     .badge { display:inline-flex; align-items:center; border-radius:999px; padding:3px 8px; font-size:12px; font-weight:800; }
     .green { background:#e8f7ef; color:#106b49; } .amber { background:#fff4df; color:#99610f; }
     .red { background:#ffe8e8; color:#a83333; } .blue { background:#e8efff; color:#1849b8; }
+    .gray { background:#eef2f6; color:#475467; }
+    tr.pending-row { background:#fffaf0; }
     .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:8px; background:#fff; }
     table { border-collapse:collapse; width:100%; min-width:900px; }
     th,td { border-bottom:1px solid var(--line); padding:9px; text-align:left; white-space:nowrap; font-size:13px; vertical-align:middle; }
@@ -47,6 +50,9 @@
     .shift { border:1px solid var(--line); border-radius:6px; padding:7px; margin-bottom:6px; background:#fafcff; font-size:12px; }
     .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--dark); color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; max-width:92vw; z-index:20; }
     .toast.show { opacity:1; }
+    .loading-bar { position:fixed; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,var(--blue),var(--green),var(--amber)); transform:scaleX(0); transform-origin:left; opacity:0; transition:opacity .15s; z-index:50; animation:loadingMove 1.1s ease-in-out infinite; }
+    body.loading .loading-bar { opacity:1; }
+    @keyframes loadingMove { 0%{transform:scaleX(.08)} 50%{transform:scaleX(.72)} 100%{transform:scaleX(1)} }
     .hidden { display:none; }
     @media (max-width:960px){ .grid,.two{grid-template-columns:1fr 1fr;} .calendar{grid-template-columns:1fr 1fr;} header{align-items:flex-start;} }
     @media (max-width:640px){ .grid,.two,.calendar{grid-template-columns:1fr;} header{display:block;} .header-actions{justify-content:flex-start; margin-top:12px;} }
@@ -104,10 +110,11 @@
   </main>
 
   <div class="toast" id="toast"></div>
+  <div class="loading-bar" aria-hidden="true"></div>
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { anchors: [], brands: [], templates: [], declarations: [], schedules: [], tab: "dashboard" };
+    const state = { anchors: [], brands: [], templates: [], declarations: [], schedules: [], tab: "dashboard", loading: 0 };
     const field = (r, name) => r.fields?.[name] ?? "";
     const today = () => new Date().toISOString().slice(0, 10);
     const i18n = {
@@ -155,11 +162,21 @@
       const el = $("toast"); el.textContent = text; el.classList.add("show");
       clearTimeout(window.__toast); window.__toast = setTimeout(() => el.classList.remove("show"), 1800);
     }
+    function setLoading(active) {
+      state.loading += active ? 1 : -1;
+      if (state.loading < 0) state.loading = 0;
+      document.body.classList.toggle("loading", state.loading > 0);
+    }
     async function api(path, options) {
-      const res = await fetch(path, options);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "API error");
-      return data;
+      setLoading(true);
+      try {
+        const res = await fetch(path, options);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "API error");
+        return data;
+      } finally {
+        setLoading(false);
+      }
     }
     async function updateRecord(type, recordId, fields, notifyText) {
       return api("/api/update", {
@@ -269,15 +286,33 @@
         return (!term || haystack.includes(term)) && (!status || field(r, "状态") === status);
       });
     }
+    function statusRank(status) {
+      return { "待处理":0, "缺人":1, "草稿":2, "已发布":3, "已确认":4, "已同意":5, "已拒绝":6, "停用":7, "正常":8 }[status] ?? 9;
+    }
+    function byStatusThenDate(a, b) {
+      const statusDiff = statusRank(field(a, "状态")) - statusRank(field(b, "状态"));
+      if (statusDiff) return statusDiff;
+      return `${field(b,"日期")} ${field(b,"开始时间")}`.localeCompare(`${field(a,"日期")} ${field(a,"开始时间")}`);
+    }
     function badge(status) {
-      const cls = status === "已确认" ? "green" : status === "已发布" ? "blue" : status === "缺人" ? "red" : "amber";
+      const cls = {
+        "待处理":"amber",
+        "草稿":"gray",
+        "已发布":"blue",
+        "已确认":"green",
+        "已同意":"green",
+        "已拒绝":"red",
+        "缺人":"red",
+        "停用":"red",
+        "正常":"green"
+      }[status] || "gray";
       return `<span class="badge ${cls}">${status || "-"}</span>`;
     }
     function scheduleRows(records) {
       if (!records.length) return `<p class="muted">${t().empty}</p>`;
       return `<div class="table-wrap"><table><thead><tr>${t().columns.schedule.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${records.map((r) => {
         const status = field(r, "状态");
-        return `<tr>
+        return `<tr class="${["待处理","缺人","草稿"].includes(status) ? "pending-row" : ""}">
           <td>${field(r,"日期")}</td><td>${field(r,"班次")}</td><td>${field(r,"开始时间")}-${field(r,"结束时间")}</td>
           <td>${field(r,"主播姓名") || "-"}</td><td>${field(r,"品牌")}</td><td>${field(r,"直播间")}</td><td>${badge(status)}</td><td>${field(r,"备注")}</td>
           <td><div class="actions">
@@ -291,7 +326,7 @@
       if (!records.length) return `<p class="muted">${t().empty}</p>`;
       return `<div class="table-wrap"><table><thead><tr>${t().columns.declaration.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${records.map((r) => {
         const status = field(r, "状态");
-        return `<tr>
+        return `<tr class="${status === "待处理" ? "pending-row" : ""}">
           <td>${field(r,"主播姓名")}</td><td>${field(r,"申报类型")}</td><td>${field(r,"日期")}</td><td>${field(r,"开始时间")}-${field(r,"结束时间")}</td>
           <td>${field(r,"原因")}</td><td>${badge(status)}</td>
           <td><div class="actions">
@@ -331,24 +366,24 @@
       $("calendarView").innerHTML = `<section class="calendar">${cells.join("")}</section>`;
     }
     function renderSchedules() {
-      $("schedulesView").innerHTML = `<section class="panel"><h2>${t().tabSchedules}</h2>${scheduleRows(filteredSchedules().slice(-160).reverse())}</section>`;
+      $("schedulesView").innerHTML = `<section class="panel"><h2>${t().tabSchedules}</h2>${scheduleRows(filteredSchedules().slice().sort(byStatusThenDate).slice(0, 160))}</section>`;
     }
     function renderDeclarations() {
-      $("declarationsView").innerHTML = `<section class="panel"><h2>${t().tabDeclarations}</h2>${declarationRows(state.declarations.slice(-160).reverse())}</section>`;
+      $("declarationsView").innerHTML = `<section class="panel"><h2>${t().tabDeclarations}</h2>${declarationRows(state.declarations.slice().sort(byStatusThenDate).slice(0, 160))}</section>`;
     }
     function renderSwaps() {
       const swaps = state.declarations
         .filter((r) => field(r, "申报类型") === "换班")
         .map((r) => ({ record:r, meta:parseSwapMeta(field(r, "原因")) }))
         .filter((item) => item.meta)
-        .reverse();
+        .sort((a, b) => byStatusThenDate(a.record, b.record));
       $("swapsView").innerHTML = `<section class="panel"><h2>${t().tabSwaps}</h2><p class="muted">${t().swapHint}</p>
         <div class="table-wrap"><table><thead><tr><th>A</th><th>B</th><th>A 原班</th><th>B 原班</th><th>状态</th><th>操作</th></tr></thead><tbody>
         ${swaps.map((item) => {
           const from = state.schedules.find((r) => r.record_id === item.meta.from);
           const to = state.schedules.find((r) => r.record_id === item.meta.to);
           const status = field(item.record, "状态");
-          return `<tr>
+          return `<tr class="${status === "待处理" ? "pending-row" : ""}">
             <td>${field(item.record, "主播姓名")}</td><td>${item.meta.target || field(to, "主播姓名")}</td>
             <td>${scheduleLabel(from)}</td><td>${scheduleLabel(to)}</td><td>${badge(status)}</td>
             <td><div class="actions">${status === "待处理" ? `<button class="good" onclick="completeSwap(${jsArg(item.record.record_id)},${jsArg(item.meta.target || field(to, "主播姓名"))})">${t().actions.forceComplete}</button><button class="danger" onclick="setDeclarationStatus(${jsArg(item.record.record_id)},'已拒绝')">${t().actions.reject}</button>` : ""}</div></td>
