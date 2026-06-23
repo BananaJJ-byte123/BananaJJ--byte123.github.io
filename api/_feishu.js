@@ -10,6 +10,8 @@ const tableEnvMap = {
 };
 
 let tokenCache = { token: "", expiresAt: 0 };
+const recordsCache = new Map();
+const RECORDS_CACHE_TTL_MS = Number(process.env.FEISHU_RECORDS_CACHE_TTL_MS || 20_000);
 
 function json(res, status, data) {
   res.statusCode = status;
@@ -96,7 +98,22 @@ function getTableId(type) {
   return requireEnv(env);
 }
 
-async function listRecords(type) {
+function cacheKey(type) {
+  return `${getBaseToken()}:${getTableId(type)}`;
+}
+
+function clearRecordsCache(type) {
+  if (!type) return recordsCache.clear();
+  recordsCache.delete(cacheKey(type));
+}
+
+async function listRecords(type, options = {}) {
+  const key = cacheKey(type);
+  const now = Date.now();
+  if (!options.fresh) {
+    const cached = recordsCache.get(key);
+    if (cached && cached.expiresAt > now) return cached.records;
+  }
   const appToken = getBaseToken();
   const tableId = getTableId(type);
   const records = [];
@@ -108,7 +125,9 @@ async function listRecords(type) {
     records.push(...(data.data?.items || []));
     pageToken = data.data?.page_token || "";
   } while (pageToken);
-  return records.map((record) => ({ record_id: record.record_id, fields: record.fields || {} }));
+  const result = records.map((record) => ({ record_id: record.record_id, fields: record.fields || {} }));
+  if (RECORDS_CACHE_TTL_MS > 0) recordsCache.set(key, { records: result, expiresAt: now + RECORDS_CACHE_TTL_MS });
+  return result;
 }
 
 async function createRecords(type, fieldsList) {
@@ -125,6 +144,7 @@ async function createRecords(type, fieldsList) {
     });
     created.push(...(data.data?.records || []));
   }
+  clearRecordsCache(type);
   return created;
 }
 
@@ -147,6 +167,7 @@ async function updateRecords(type, recordsList) {
     });
     updated.push(...(data.data?.records || []));
   }
+  clearRecordsCache(type);
   return updated;
 }
 
@@ -183,6 +204,7 @@ module.exports = {
   listRecords,
   createRecords,
   updateRecords,
+  clearRecordsCache,
   sendBotText,
   handleError,
   tableEnvMap
