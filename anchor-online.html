@@ -29,10 +29,12 @@
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .profile { display:flex; gap:8px; align-items:end; flex-wrap:wrap; }
     .profile label { flex:1 1 260px; margin:0; }
-    .name-field { position:relative; }
+    .name-field { position:relative; flex:1 1 260px; }
+    .name-field label { margin:0 0 6px; }
     .suggestions { position:absolute; left:0; right:0; top:100%; z-index:10; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 28px rgba(15,23,42,.14); margin-top:4px; overflow:hidden; }
     .suggestions:empty { display:none; }
-    .suggestion { display:block; width:100%; border:0; border-bottom:1px solid var(--line); border-radius:0; background:#fff; color:var(--ink); text-align:left; padding:10px 12px; font-weight:700; }
+    .suggestion { display:block; width:100%; border:0; border-bottom:1px solid var(--line); border-radius:0; background:#fff; color:var(--ink); text-align:left; padding:10px 12px; font-weight:700; cursor:pointer; }
+    .suggestion:hover { background:#eef4ff; color:#1849b8; }
     .suggestion:last-child { border-bottom:0; }
     .suggestion small { display:block; color:var(--muted); font-weight:400; margin-top:2px; }
     .shift { border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:10px; background:#fff; }
@@ -64,7 +66,7 @@
     <main>
       <section class="card">
         <div class="profile">
-          <label class="name-field"><span data-i18n="anchorName">主播姓名</span><input id="anchorName" placeholder="Siti Rahma / Anna Smith" autocomplete="off" oninput="handleAnchorInput()" onfocus="renderAnchorSuggestions()"><div id="anchorSuggestions" class="suggestions"></div></label>
+          <div class="name-field"><label for="anchorName"><span data-i18n="anchorName">主播姓名</span></label><input id="anchorName" placeholder="Siti Rahma / Anna Smith" autocomplete="off" oninput="handleAnchorInput()" onfocus="renderAnchorSuggestions()"><div id="anchorSuggestions" class="suggestions"></div></div>
           <button onclick="saveAnchor()" data-i18n="saveName">保存</button>
           <button class="secondary" onclick="loadAll()" data-i18n="refresh">刷新</button>
         </div>
@@ -117,7 +119,7 @@
         date:"日期", originalShift:"原班次", startTime:"开始时间", endTime:"结束时间", reason:"原因/备注", submitButton:"提交给主管",
         required:"请填写主播姓名和日期", pickAnchor:"请先从主播名单中选择姓名", noAnchor:"未匹配到主播，请检查姓名", submitted:"已提交，主管会收到通知", saved:"已保存主播姓名", empty:"暂无排班", confirmed:"班次已确认",
         confirm:"确认班次", time:"时间", brand:"品牌", room:"直播间", status:"状态", swap:"发起换班", swapFrom:"我的班次", swapTo:"想换的对方班次",
-        submitSwap:"提交换班请求", incoming:"发给我的请求", outgoing:"我发起的请求", accept:"同意换班", reject:"拒绝", swapMode:"换班模式", exchange:"等价互换", cover:"单向代班", coverAnchor:"代班主播", swapSent:"换班请求已发出", swapDone:"换班已完成"
+        submitSwap:"提交换班请求", incoming:"发给我的请求", outgoing:"我发起的请求", accept:"同意换班", reject:"拒绝", swapMode:"换班模式", exchange:"等价互换", cover:"请别人代我的班", coverAnchor:"请谁代班", swapSent:"换班请求已发出", swapDone:"换班已完成"
       },
       en: {
         title:"Anchor Self-Service", subtitle:"View schedules, confirm shifts, and submit leave or swap requests", anchorName:"Anchor name", saveName:"Save", refresh:"Refresh",
@@ -125,7 +127,7 @@
         date:"Date", originalShift:"Original shift", startTime:"Start time", endTime:"End time", reason:"Reason / notes", submitButton:"Submit to manager",
         required:"Please enter anchor name and date", pickAnchor:"Please select a name from the anchor list", noAnchor:"No matching anchor. Please check the name.", submitted:"Submitted. The manager will be notified.", saved:"Anchor name saved", empty:"No schedules yet", confirmed:"Shift confirmed",
         confirm:"Confirm shift", time:"Time", brand:"Brand", room:"Room", status:"Status", swap:"Request swap", swapFrom:"My shift", swapTo:"Target shift",
-        submitSwap:"Send swap request", incoming:"Requests to me", outgoing:"My requests", accept:"Accept swap", reject:"Reject", swapMode:"Swap mode", exchange:"Exchange", cover:"Cover shift", coverAnchor:"Cover anchor", swapSent:"Swap request sent", swapDone:"Swap completed"
+        submitSwap:"Send swap request", incoming:"Requests to me", outgoing:"My requests", accept:"Accept swap", reject:"Reject", swapMode:"Swap mode", exchange:"Exchange shifts", cover:"Ask someone to cover me", coverAnchor:"Cover by", swapSent:"Swap request sent", swapDone:"Swap completed"
       },
       id: {
         title:"Portal Anchor", subtitle:"Lihat jadwal, konfirmasi shift, dan kirim cuti atau tukar shift", anchorName:"Nama anchor", saveName:"Simpan", refresh:"Refresh",
@@ -133,7 +135,7 @@
         date:"Tanggal", originalShift:"Shift awal", startTime:"Waktu mulai", endTime:"Waktu selesai", reason:"Alasan / catatan", submitButton:"Kirim ke supervisor",
         required:"Mohon isi nama anchor dan tanggal", pickAnchor:"Pilih nama dari daftar anchor", noAnchor:"Anchor tidak ditemukan. Periksa nama.", submitted:"Terkirim. Supervisor akan menerima notifikasi.", saved:"Nama anchor tersimpan", empty:"Belum ada jadwal", confirmed:"Shift dikonfirmasi",
         confirm:"Konfirmasi shift", time:"Waktu", brand:"Brand", room:"Room", status:"Status", swap:"Minta tukar", swapFrom:"Shift saya", swapTo:"Shift tujuan",
-        submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", accept:"Setujui tukar", reject:"Tolak", swapMode:"Mode tukar", exchange:"Tukar setara", cover:"Pengganti", coverAnchor:"Anchor pengganti", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai"
+        submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", accept:"Setujui tukar", reject:"Tolak", swapMode:"Mode tukar", exchange:"Tukar setara", cover:"Minta orang mengganti saya", coverAnchor:"Digantikan oleh", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai"
       }
     };
     let currentLang = localStorage.getItem("uiLang") || "zh";
@@ -168,7 +170,7 @@
         const name = anchorName(anchor);
         const english = anchorEnglishName(anchor);
         const meta = [field(anchor, "语言"), field(anchor, "国家"), field(anchor, "擅长类目")].filter(Boolean).join(" · ");
-        return `<button type="button" class="suggestion" onpointerdown="selectAnchorEvent(event, ${jsArg(name)})" onclick="selectAnchorName(${jsArg(name)})">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></button>`;
+        return `<div class="suggestion" role="option" tabindex="0" onpointerdown="selectAnchorEvent(event, ${jsArg(name)})" onmousedown="selectAnchorEvent(event, ${jsArg(name)})" onclick="selectAnchorName(${jsArg(name)})">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></div>`;
       }).join("");
     }
     function handleAnchorInput() {
