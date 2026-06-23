@@ -34,7 +34,7 @@
     .suggestions { position:absolute; left:0; right:0; top:100%; z-index:10; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 28px rgba(15,23,42,.14); margin-top:4px; overflow:hidden; }
     .suggestions:empty { display:none; }
     .suggestion { display:block; width:100%; border:0; border-bottom:1px solid var(--line); border-radius:0; background:#fff; color:var(--ink); text-align:left; padding:10px 12px; font-weight:700; cursor:pointer; }
-    .suggestion:hover { background:#eef4ff; color:#1849b8; }
+    .suggestion:hover,.suggestion.active { background:#eef4ff; color:#1849b8; }
     .suggestion:last-child { border-bottom:0; }
     .suggestion small { display:block; color:var(--muted); font-weight:400; margin-top:2px; }
     .shift { border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:10px; background:#fff; }
@@ -66,7 +66,7 @@
     <main>
       <section class="card">
         <div class="profile">
-          <div class="name-field"><label for="anchorName"><span data-i18n="anchorName">主播姓名</span></label><input id="anchorName" placeholder="Siti Rahma / Anna Smith" autocomplete="off" oninput="handleAnchorInput()" onfocus="renderAnchorSuggestions()"><div id="anchorSuggestions" class="suggestions"></div></div>
+          <div class="name-field"><label for="anchorName"><span data-i18n="anchorName">主播姓名</span></label><input id="anchorName" placeholder="Siti Rahma / Anna Smith" autocomplete="off" oninput="handleAnchorInput()" onfocus="renderAnchorSuggestions()" onkeydown="handleAnchorKey(event)"><div id="anchorSuggestions" class="suggestions" role="listbox"></div></div>
           <button onclick="saveAnchor()" data-i18n="saveName">保存</button>
           <button class="secondary" onclick="loadAll()" data-i18n="refresh">刷新</button>
         </div>
@@ -106,7 +106,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { anchors: [], schedules: [], declarations: [], selectedSwapFrom: "", swapMode: "exchange", tab: "schedule" };
+    const state = { anchors: [], schedules: [], declarations: [], selectedSwapFrom: "", swapMode: "exchange", activeSuggestion: 0, tab: "schedule" };
     const declarationValues = [
       { value:"请假", label:{ zh:"请假", en:"Leave", id:"Cuti" } },
       { value:"换班", label:{ zh:"换班", en:"Shift swap", id:"Tukar shift" } },
@@ -170,8 +170,10 @@
         const name = anchorName(anchor);
         const english = anchorEnglishName(anchor);
         const meta = [field(anchor, "语言"), field(anchor, "国家"), field(anchor, "擅长类目")].filter(Boolean).join(" · ");
-        return `<div class="suggestion" role="option" tabindex="0" onpointerdown="selectAnchorEvent(event, ${jsArg(name)})" onmousedown="selectAnchorEvent(event, ${jsArg(name)})" onclick="selectAnchorName(${jsArg(name)})">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></div>`;
+        return `<div class="suggestion" role="option" tabindex="0" data-name="${name.replace(/"/g, "&quot;")}">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></div>`;
       }).join("");
+      state.activeSuggestion = 0;
+      updateSuggestionActive();
     }
     function handleAnchorInput() {
       renderAnchorSuggestions();
@@ -185,9 +187,33 @@
       renderSchedule();
       renderSwap();
     }
-    function selectAnchorEvent(event, name) {
-      event.preventDefault();
-      selectAnchorName(name);
+    function suggestionItems() {
+      return [...$("anchorSuggestions").querySelectorAll(".suggestion")];
+    }
+    function updateSuggestionActive() {
+      suggestionItems().forEach((item, index) => item.classList.toggle("active", index === state.activeSuggestion));
+    }
+    function pickActiveSuggestion() {
+      const item = suggestionItems()[state.activeSuggestion];
+      if (item?.dataset.name) selectAnchorName(item.dataset.name);
+    }
+    function handleAnchorKey(event) {
+      const items = suggestionItems();
+      if (!items.length) return;
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        state.activeSuggestion = Math.min(items.length - 1, state.activeSuggestion + 1);
+        updateSuggestionActive();
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        state.activeSuggestion = Math.max(0, state.activeSuggestion - 1);
+        updateSuggestionActive();
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        pickActiveSuggestion();
+      }
     }
     function currentAnchorName() {
       return resolveAnchorName($("anchorName").value);
@@ -442,6 +468,20 @@
         await loadAll();
       } catch (e) { toast(e.message); }
     }
+    function bindAnchorSuggestionPicker() {
+      const box = $("anchorSuggestions");
+      const pick = (event) => {
+        const item = event.target.closest(".suggestion");
+        if (!item || !box.contains(item)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        selectAnchorName(item.dataset.name || item.textContent.trim().split(" / ")[0]);
+      };
+      box.addEventListener("pointerdown", pick, true);
+      box.addEventListener("mousedown", pick, true);
+      box.addEventListener("click", pick, true);
+    }
+    bindAnchorSuggestionPicker();
     setLang(currentLang);
     loadAll();
   </script>
