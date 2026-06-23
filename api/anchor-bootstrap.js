@@ -7,7 +7,15 @@ module.exports = async function handler(req, res) {
       listRecords("schedules"),
       listRecords("declarations")
     ]);
-    json(res, 200, { ok: true, records: { anchors, schedules, declarations } });
+
+    json(res, 200, {
+      ok: true,
+      records: {
+        anchors,
+        schedules,
+        declarations
+      }
+    });
   } catch (error) {
     handleError(res, error);
   }
