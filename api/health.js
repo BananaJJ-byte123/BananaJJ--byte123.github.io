@@ -1,4 +1,4 @@
-const { json, tableEnvMap } = require("./_feishu");
+const { json, tableEnvMap } = require("../lib/_feishu");
 
 module.exports = async function handler(req, res) {
   const env = {

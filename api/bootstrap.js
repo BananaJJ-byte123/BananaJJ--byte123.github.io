@@ -1,4 +1,4 @@
-const { json, listRecords, tableEnvMap, handleError } = require("./_feishu");
+const { json, listRecords, tableEnvMap, handleError } = require("../lib/_feishu");
 
 function envStatus() {
   const env = {

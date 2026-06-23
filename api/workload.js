@@ -1,39 +1,48 @@
-const { json, listRecords, handleError } = require("./_feishu");
+const { json, listRecords, handleError } = require("../lib/_feishu");
 
-function f(record, name, fallback = "") {
-  const value = record.fields?.[name];
+const F = {
+  anchorId: "\u4e3b\u64adID", name: "\u59d3\u540d", language: "\u8bed\u8a00", level: "\u7b49\u7ea7", target: "\u6708\u76ee\u6807\u5de5\u65f6",
+  scheduleDate: "\u65e5\u671f", scheduleAnchor: "\u4e3b\u64ad\u59d3\u540d", start: "\u5f00\u59cb\u65f6\u95f4", end: "\u7ed3\u675f\u65f6\u95f4"
+};
+
+function val(record, key) {
+  const value = record && record.fields ? record.fields[key] : "";
   if (Array.isArray(value)) return value.map((item) => item.text || item.name || item).join(",");
-  return value == null ? fallback : String(value);
+  if (value && typeof value === "object") return value.text || value.name || JSON.stringify(value);
+  return value == null ? "" : String(value);
 }
 
-function hours(start, end) {
-  const [sh, sm] = String(start || "00:00").split(":").map(Number);
-  const [eh, em] = String(end || "00:00").split(":").map(Number);
-  return Math.max(0, ((eh * 60 + (em || 0)) - (sh * 60 + (sm || 0))) / 60);
+function minutes(time) {
+  const [h, m] = String(time || "0:0").split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function hours(schedule) {
+  return Math.max(0, (minutes(val(schedule, F.end)) - minutes(val(schedule, F.start))) / 60);
 }
 
 module.exports = async function handler(req, res) {
   try {
-    const url = new URL(req.url, `https://${req.headers.host || "localhost"}`);
+    const url = new URL(req.url, "http://localhost");
     const month = url.searchParams.get("month") || new Date().toISOString().slice(0, 7);
     const [anchors, schedules] = await Promise.all([listRecords("anchors"), listRecords("schedules")]);
-    const result = anchors.map((anchor) => {
-      const name = f(anchor, "姓名");
-      const target = Number(f(anchor, "月目标工时", "0")) || 0;
-      const rows = schedules.filter((item) => f(item, "主播姓名") === name && f(item, "日期").startsWith(month) && f(item, "状态") !== "缺人");
-      const scheduledHours = rows.reduce((sum, item) => sum + hours(f(item, "开始时间"), f(item, "结束时间")), 0);
+    const records = anchors.map((anchor) => {
+      const name = val(anchor, F.name);
+      const ownSchedules = schedules.filter((item) => val(item, F.scheduleAnchor) === name && val(item, F.scheduleDate).startsWith(month));
+      const actualHours = ownSchedules.reduce((sum, item) => sum + hours(item), 0);
+      const targetHours = Number(val(anchor, F.target)) || 0;
       return {
-        anchorId: f(anchor, "主播ID"),
+        anchorId: val(anchor, F.anchorId),
         name,
-        language: f(anchor, "语言"),
-        level: f(anchor, "等级"),
-        targetHours: target,
-        scheduledHours,
-        balanceHours: Number((target - scheduledHours).toFixed(2)),
-        shifts: rows.length
+        language: val(anchor, F.language),
+        level: val(anchor, F.level),
+        targetHours,
+        actualHours,
+        gapHours: actualHours - targetHours,
+        shiftCount: ownSchedules.length
       };
     });
-    json(res, 200, { ok: true, month, records: result });
+    json(res, 200, { ok: true, month, records });
   } catch (error) {
     handleError(res, error);
   }

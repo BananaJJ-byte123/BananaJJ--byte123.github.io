@@ -1,4 +1,4 @@
-const { json, listRecords, handleError } = require("./_feishu");
+const { json, listRecords, handleError } = require("../lib/_feishu");
 
 const allowed = new Set(["anchors", "brands", "templates", "declarations", "schedules", "notifications"]);
 

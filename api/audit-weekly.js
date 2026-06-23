@@ -1,39 +1,42 @@
-const { json, listRecords, createRecords, handleError } = require("./_feishu");
+const { json, listRecords, createRecords, handleError } = require("../lib/_feishu");
 
-function f(record, name, fallback = "") {
-  const value = record.fields?.[name];
+const F = {
+  title: "\u6807\u9898", content: "\u5185\u5bb9", time: "\u65f6\u95f4", status: "\u72b6\u6001"
+};
+
+function val(record, key) {
+  const value = record && record.fields ? record.fields[key] : "";
   if (Array.isArray(value)) return value.map((item) => item.text || item.name || item).join(",");
-  return value == null ? fallback : String(value);
+  if (value && typeof value === "object") return value.text || value.name || JSON.stringify(value);
+  return value == null ? "" : String(value);
 }
 
-function dateRange(startDate) {
-  const start = startDate ? new Date(`${startDate}T00:00:00Z`) : new Date();
-  if (!startDate) start.setUTCDate(start.getUTCDate() - 6);
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 6);
-  return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 module.exports = async function handler(req, res) {
   try {
-    const url = new URL(req.url, `https://${req.headers.host || "localhost"}`);
-    const [from, to] = dateRange(url.searchParams.get("from"));
-    const logs = (await listRecords("notifications", { fresh: true })).filter((item) => {
-      const time = f(item, "时间").slice(0, 10);
-      return time >= from && time <= to && (f(item, "通知ID").startsWith("AUD-") || f(item, "标题").includes("留痕"));
-    });
-    const lines = logs
-      .sort((a, b) => f(a, "时间").localeCompare(f(b, "时间")))
-      .map((item) => `${f(item, "时间")} | ${f(item, "标题")} | ${f(item, "内容")} | ${f(item, "状态")}`);
-    const fields = {
-      "通知ID": `WEEKLY-AUD-${from}`,
-      "标题": `每周留痕日志 ${from}~${to}`,
-      "内容": lines.join("\n") || "本周暂无留痕事件",
-      "时间": new Date().toISOString(),
-      "状态": "已生成"
-    };
-    const created = await createRecords("notifications", [fields]);
-    json(res, 200, { ok: true, from, to, count: logs.length, record: created[0] || null });
+    const url = new URL(req.url, "http://localhost");
+    const from = url.searchParams.get("from") || new Date().toISOString().slice(0, 10);
+    const to = addDays(from, 7);
+    const logs = await listRecords("notifications");
+    const rows = logs
+      .filter((item) => {
+        const time = val(item, F.time).slice(0, 10);
+        return time >= from && time < to;
+      })
+      .map((item) => `${val(item, F.time)} | ${val(item, F.title)} | ${val(item, F.content)} | ${val(item, F.status)}`);
+    const content = rows.length ? rows.join("\n") : "\u672c\u5468\u6682\u65e0\u7559\u75d5\u8bb0\u5f55";
+    const created = await createRecords("notifications", [{
+      [F.title]: `Audit Trail ${from} - ${to}`,
+      [F.content]: content,
+      [F.time]: new Date().toISOString(),
+      [F.status]: "\u5df2\u751f\u6210"
+    }]);
+    json(res, 200, { ok: true, from, to, count: rows.length, record: created[0] || null });
   } catch (error) {
     handleError(res, error);
   }

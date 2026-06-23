@@ -1,136 +1,109 @@
-const { json, readJson, listRecords, createRecords, sendBotText, handleError } = require("./_feishu");
-const { audit } = require("./_audit");
+const { json, readJson, listRecords, createRecords, sendBotText, handleError } = require("../lib/_feishu");
+const { audit } = require("../lib/_audit");
 
-function f(record, name, fallback = "") {
-  const value = record.fields?.[name];
+const F = {
+  anchorId: "\u4e3b\u64adID", anchorName: "\u59d3\u540d", language: "\u8bed\u8a00", category: "\u64c5\u957f\u7c7b\u76ee", level: "\u7b49\u7ea7", target: "\u6708\u76ee\u6807\u5de5\u65f6", maxDaily: "\u6bcf\u65e5\u6700\u591a\u573a\u6b21", anchorStatus: "\u72b6\u6001",
+  brandName: "\u54c1\u724c\u540d", brandCategory: "\u7c7b\u76ee", needLanguage: "\u9700\u8981\u8bed\u8a00", room: "\u76f4\u64ad\u95f4\u540d\u79f0", priority: "\u4f18\u5148\u7ea7", brandStatus: "\u72b6\u6001",
+  shiftName: "\u73ed\u6b21\u540d\u79f0", start: "\u5f00\u59cb\u65f6\u95f4", end: "\u7ed3\u675f\u65f6\u95f4", duration: "\u9ed8\u8ba4\u65f6\u957f", templateStatus: "\u72b6\u6001",
+  scheduleId: "\u6392\u73edID", date: "\u65e5\u671f", shift: "\u73ed\u6b21", scheduleAnchor: "\u4e3b\u64ad\u59d3\u540d", brand: "\u54c1\u724c", scheduleRoom: "\u76f4\u64ad\u95f4", scheduleStatus: "\u72b6\u6001", note: "\u5907\u6ce8",
+  declarationAnchor: "\u4e3b\u64ad\u59d3\u540d", declarationType: "\u7533\u62a5\u7c7b\u578b", declarationDate: "\u65e5\u671f", declarationStatus: "\u72b6\u6001"
+};
+
+function val(record, key) {
+  const value = record && record.fields ? record.fields[key] : "";
   if (Array.isArray(value)) return value.map((item) => item.text || item.name || item).join(",");
-  return value == null ? fallback : String(value);
+  if (value && typeof value === "object") return value.text || value.name || JSON.stringify(value);
+  return value == null ? "" : String(value);
 }
 
-function buildDateRange(startDate, days) {
-  const result = [];
-  const [year, month, day] = startDate.split("-").map(Number);
-  const start = new Date(Date.UTC(year, month - 1, day));
-  for (let i = 0; i < days; i += 1) {
-    const date = new Date(start);
-    date.setUTCDate(start.getUTCDate() + i);
-    result.push(date.toISOString().slice(0, 10));
-  }
-  return result;
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
-function buildMonthRange(month) {
-  const [year, monthIndex] = month.split("-").map(Number);
-  const first = new Date(Date.UTC(year, monthIndex - 1, 1));
-  const next = new Date(Date.UTC(year, monthIndex, 1));
-  const days = Math.round((next - first) / 86400000);
-  return buildDateRange(`${month}-01`, days);
+function monthDays(month) {
+  const [year, m] = month.split("-").map(Number);
+  return new Date(year, m, 0).getDate();
 }
 
-function durationHours(start, end) {
-  const [sh, sm] = String(start || "00:00").split(":").map(Number);
-  const [eh, em] = String(end || "00:00").split(":").map(Number);
-  return Math.max(0, ((eh * 60 + (em || 0)) - (sh * 60 + (sm || 0))) / 60);
+function minutes(time) {
+  const [h, m] = String(time || "0:0").split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
 }
 
-function hasDeclarationBlock(anchorName, date, declarations) {
-  return declarations.some((item) => {
-    const type = f(item, "申报类型");
-    const status = f(item, "状态");
-    return f(item, "主播姓名") === anchorName && f(item, "日期") === date && status !== "驳回" && ["请假", "不可上班"].includes(type);
-  });
+function shiftHours(template) {
+  const preset = Number(val(template, F.duration));
+  if (preset) return preset;
+  return Math.max(0, (minutes(val(template, F.end)) - minutes(val(template, F.start))) / 60);
 }
 
-function pickAnchor({ anchors, brand, date, template, declarations, assigned, monthlyHours }) {
-  const language = f(brand, "需要语言");
-  const category = f(brand, "类目");
-  const start = Number(f(template, "开始时间", "09:00").slice(0, 2));
-  const candidates = anchors
-    .filter((anchor) => f(anchor, "状态", "正常") !== "停用")
-    .filter((anchor) => f(anchor, "语言") === language)
-    .filter((anchor) => !hasDeclarationBlock(f(anchor, "姓名"), date, declarations))
-    .map((anchor) => {
-      const name = f(anchor, "姓名");
-      const sameDay = assigned.filter((item) => item.anchorName === name && item.date === date);
-      if (sameDay.length >= Number(f(anchor, "每日最多场次", "2"))) return null;
-      for (const item of sameDay) {
-        if (Math.abs(start - item.startHour) < 6) return null;
-      }
-      let score = 0;
-      if (f(anchor, "擅长类目").includes(category)) score += 40;
-      if (f(anchor, "等级") === "A") score += 20;
-      if (f(anchor, "等级") === "B") score += 10;
-      const targetHours = Number(f(anchor, "月目标工时", "0")) || 0;
-      const remainingHours = targetHours - (monthlyHours[name] || 0);
-      score += Math.max(-30, Math.min(30, remainingHours));
-      score -= assigned.filter((item) => item.anchorName === name).length * 3;
-      return { anchor, score };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.score - a.score);
-  return candidates[0]?.anchor || null;
+function isLeave(anchorName, date, declarations) {
+  return declarations.some((item) =>
+    val(item, F.declarationAnchor) === anchorName &&
+    val(item, F.declarationType) === "\u8bf7\u5047" &&
+    val(item, F.declarationDate) === date &&
+    val(item, F.declarationStatus) !== "\u5df2\u62d2\u7edd"
+  );
 }
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { ok: false, error: "Method not allowed" });
   try {
     const body = await readJson(req);
-    const startDate = body.startDate || new Date().toISOString().slice(0, 10);
-    const dates = body.month ? buildMonthRange(body.month) : buildDateRange(startDate, Math.max(1, Math.min(31, Number(body.days || 7))));
-    const month = body.month || dates[0].slice(0, 7);
+    const startDate = body.month ? `${body.month}-01` : body.startDate;
+    const days = body.month ? monthDays(body.month) : Math.max(1, Math.min(31, Number(body.days || 7)));
+    if (!startDate) return json(res, 400, { ok: false, error: "Missing startDate or month" });
 
-    const [anchors, brands, templates, declarations, existingSchedules] = await Promise.all([
+    const [anchorsRaw, brandsRaw, templatesRaw, declarations] = await Promise.all([
       listRecords("anchors"),
       listRecords("brands"),
       listRecords("templates"),
-      listRecords("declarations"),
-      listRecords("schedules")
+      listRecords("declarations")
     ]);
+    const anchors = anchorsRaw.filter((item) => val(item, F.anchorStatus) !== "\u505c\u7528");
+    const brands = brandsRaw.filter((item) => val(item, F.brandStatus) !== "\u505c\u7528").sort((a, b) => Number(val(a, F.priority) || 9) - Number(val(b, F.priority) || 9));
+    const templates = templatesRaw.filter((item) => val(item, F.templateStatus) !== "\u505c\u7528");
+    const monthlyHours = new Map();
+    const dailyCount = new Map();
+    const output = [];
 
-    const assigned = [];
-    const monthlyHours = {};
-    for (const item of existingSchedules) {
-      const name = f(item, "主播姓名");
-      if (name && f(item, "日期").startsWith(month) && f(item, "状态") !== "缺人") {
-        monthlyHours[name] = (monthlyHours[name] || 0) + durationHours(f(item, "开始时间"), f(item, "结束时间"));
-      }
-    }
-    const schedules = [];
-    let missing = 0;
-
-    for (const date of dates) {
-      for (const brand of brands) {
-        for (const template of templates) {
-          const anchor = pickAnchor({ anchors, brand, date, template, declarations, assigned, monthlyHours });
-          const startTime = f(template, "开始时间");
-          const endTime = f(template, "结束时间");
-          if (anchor) {
-            const name = f(anchor, "姓名");
-            assigned.push({ anchorName: name, date, startHour: Number(startTime.slice(0, 2)) });
-            monthlyHours[name] = (monthlyHours[name] || 0) + durationHours(startTime, endTime);
-          } else {
-            missing += 1;
+    for (let day = 0; day < days; day++) {
+      const date = addDays(startDate, day);
+      for (const template of templates) {
+        for (const brand of brands) {
+          const candidates = anchors
+            .filter((anchor) => val(anchor, F.language) === val(brand, F.needLanguage))
+            .filter((anchor) => !val(anchor, F.category) || !val(brand, F.brandCategory) || val(anchor, F.category).includes(val(brand, F.brandCategory)))
+            .filter((anchor) => !isLeave(val(anchor, F.anchorName), date, declarations))
+            .filter((anchor) => (dailyCount.get(`${date}|${val(anchor, F.anchorName)}`) || 0) < (Number(val(anchor, F.maxDaily)) || 2))
+            .sort((a, b) => (monthlyHours.get(val(a, F.anchorName)) || 0) - (monthlyHours.get(val(b, F.anchorName)) || 0));
+          const anchor = candidates[0];
+          const anchorName = anchor ? val(anchor, F.anchorName) : "";
+          const hours = shiftHours(template);
+          if (anchorName) {
+            monthlyHours.set(anchorName, (monthlyHours.get(anchorName) || 0) + hours);
+            dailyCount.set(`${date}|${anchorName}`, (dailyCount.get(`${date}|${anchorName}`) || 0) + 1);
           }
-          schedules.push({
-            "排班ID": `S-${date}-${f(brand, "品牌ID", f(brand, "品牌名"))}-${f(template, "班次ID", f(template, "班次名称"))}`.replace(/\s+/g, ""),
-            "日期": date,
-            "班次": f(template, "班次名称"),
-            "开始时间": startTime,
-            "结束时间": endTime,
-            "主播姓名": anchor ? f(anchor, "姓名") : "",
-            "品牌": f(brand, "品牌名"),
-            "直播间": f(brand, "直播间名称"),
-            "状态": anchor ? "草稿" : "缺人",
-            "备注": anchor ? "自动生成" : "无符合条件主播"
+          output.push({
+            [F.scheduleId]: `SCH-${date.replace(/-/g, "")}-${val(template, F.shiftName)}-${val(brand, F.brandName)}-${output.length + 1}`,
+            [F.date]: date,
+            [F.shift]: val(template, F.shiftName),
+            [F.start]: val(template, F.start),
+            [F.end]: val(template, F.end),
+            [F.scheduleAnchor]: anchorName,
+            [F.brand]: val(brand, F.brandName),
+            [F.scheduleRoom]: val(brand, F.room),
+            [F.scheduleStatus]: anchorName ? "\u8349\u7a3f" : "\u7f3a\u4eba",
+            [F.note]: anchorName ? "\u81ea\u52a8\u6392\u73ed" : "\u6682\u65e0\u5339\u914d\u4e3b\u64ad"
           });
         }
       }
     }
-
-    const created = await createRecords("schedules", schedules);
-    await sendBotText(`排班草稿已生成：${dates[0]} 起 ${dates.length} 天，共 ${schedules.length} 条，缺人 ${missing} 条。请主管查看排班结果表。`);
-    await audit("自动排班", `范围：${dates[0]} 至 ${dates[dates.length - 1]}；生成：${schedules.length}；缺人：${missing}`);
-    json(res, 200, { ok: true, count: schedules.length, missing, created: created.length });
+    const created = await createRecords("schedules", output);
+    await audit("\u81ea\u52a8\u6392\u73ed", `${startDate} for ${days} days, created ${created.length}`);
+    await sendBotText(`\u3010\u6392\u73ed\u751f\u6210\u3011${startDate} \u8d77 ${days} \u5929\uff0c\u5171 ${created.length} \u6761`);
+    json(res, 200, { ok: true, created: created.length, schedules: created });
   } catch (error) {
     handleError(res, error);
   }
