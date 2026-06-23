@@ -156,11 +156,12 @@ async function requestSwap(body) {
   const preview = mode === "cover"
     ? coverPreview(schedules, fromSchedule.record_id, toAnchorName)
     : swapPreview(schedules, fromSchedule.record_id, toSchedule.record_id, fromAnchorName, toAnchorName);
-  const fromAnchor = findAnchor(anchors, fromAnchorName);
-  const toBrand = brandForSchedule(brands, mode === "cover" ? fromSchedule : toSchedule);
-  const preCheck = anchorMatchesBrand(fromAnchor, toBrand);
-  if (mode === "exchange" && !preCheck.ok) return { status: 400, data: { ok: false, error: `前置校验失败：${preCheck.reason}` } };
-  const workload = mode === "cover" ? { ok: true } : validateWorkload(fromAnchor, findById(preview, toSchedule.record_id), preview);
+  const checkAnchor = findAnchor(anchors, mode === "cover" ? toAnchorName : fromAnchorName);
+  const checkSchedule = mode === "cover" ? fromSchedule : toSchedule;
+  const checkBrand = brandForSchedule(brands, checkSchedule);
+  const preCheck = anchorMatchesBrand(checkAnchor, checkBrand);
+  if (!preCheck.ok) return { status: 400, data: { ok: false, error: `前置校验失败：${preCheck.reason}` } };
+  const workload = validateWorkload(checkAnchor, findById(preview, checkSchedule.record_id), preview);
   if (!workload.ok) return { status: 400, data: { ok: false, error: `前置校验失败：${workload.reason}` } };
 
   const fields = {
