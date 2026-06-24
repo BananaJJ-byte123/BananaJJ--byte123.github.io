@@ -2,7 +2,7 @@ const { json, listRecords, handleError } = require("../lib/_feishu");
 
 const F = {
   anchorId: "\u4e3b\u64adID", name: "\u59d3\u540d", language: "\u8bed\u8a00", level: "\u7b49\u7ea7", target: "\u6708\u76ee\u6807\u5de5\u65f6",
-  scheduleDate: "\u65e5\u671f", scheduleAnchor: "\u4e3b\u64ad\u59d3\u540d", start: "\u5f00\u59cb\u65f6\u95f4", end: "\u7ed3\u675f\u65f6\u95f4"
+  scheduleDate: "\u65e5\u671f", scheduleAnchor: "\u4e3b\u64ad\u59d3\u540d", start: "\u5f00\u59cb\u65f6\u95f4", end: "\u7ed3\u675f\u65f6\u95f4", status: "\u72b6\u6001"
 };
 
 function val(record, key) {
@@ -21,6 +21,10 @@ function hours(schedule) {
   return Math.max(0, (minutes(val(schedule, F.end)) - minutes(val(schedule, F.start))) / 60);
 }
 
+function isActiveSchedule(schedule) {
+  return !["\u5386\u53f2", "\u5df2\u53d6\u6d88"].includes(val(schedule, F.status));
+}
+
 module.exports = async function handler(req, res) {
   try {
     const url = new URL(req.url, "http://localhost");
@@ -28,7 +32,7 @@ module.exports = async function handler(req, res) {
     const [anchors, schedules] = await Promise.all([listRecords("anchors"), listRecords("schedules")]);
     const records = anchors.map((anchor) => {
       const name = val(anchor, F.name);
-      const ownSchedules = schedules.filter((item) => val(item, F.scheduleAnchor) === name && val(item, F.scheduleDate).startsWith(month));
+      const ownSchedules = schedules.filter((item) => isActiveSchedule(item) && val(item, F.scheduleAnchor) === name && val(item, F.scheduleDate).startsWith(month));
       const actualHours = ownSchedules.reduce((sum, item) => sum + hours(item), 0);
       const targetHours = Number(val(anchor, F.target)) || 0;
       return {

@@ -1,4 +1,4 @@
-const { json, readJson, listRecords, createRecords, sendBotText, handleError } = require("../lib/_feishu");
+const { json, readJson, listRecords, createRecords, updateRecords, sendBotText, handleError } = require("../lib/_feishu");
 const { audit } = require("../lib/_audit");
 
 const F = {
@@ -47,10 +47,60 @@ function isLeave(anchorName, date, declarations) {
   );
 }
 
+function isInactiveSchedule(record) {
+  return ["\u5386\u53f2", "\u5df2\u53d6\u6d88"].includes(val(record, F.scheduleStatus));
+}
+
+function duplicateKey(record) {
+  return [
+    val(record, F.date),
+    val(record, F.start),
+    val(record, F.end),
+    val(record, F.brand),
+    val(record, F.scheduleRoom)
+  ].join("|");
+}
+
+async function cleanupDuplicateSchedules() {
+  const schedules = await listRecords("schedules", { fresh: true });
+  const groups = new Map();
+  for (const record of schedules) {
+    if (isInactiveSchedule(record)) continue;
+    const key = duplicateKey(record);
+    if (!key.replace(/\|/g, "")) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(record);
+  }
+
+  const updates = [];
+  for (const records of groups.values()) {
+    if (records.length < 2) continue;
+    const keep = records[records.length - 1];
+    for (const record of records) {
+      if (record.record_id === keep.record_id) continue;
+      updates.push({
+        record_id: record.record_id,
+        fields: {
+          [F.scheduleStatus]: "\u5386\u53f2",
+          [F.note]: `${val(record, F.note) || ""}\n\u91cd\u590d\u6392\u73ed\u6e05\u7406\uff1a\u4fdd\u7559\u540c\u5c97\u4f4d\u6700\u65b0\u8bb0\u5f55 ${keep.record_id}`.trim()
+        }
+      });
+    }
+  }
+
+  if (updates.length) await updateRecords("schedules", updates);
+  await audit("\u6e05\u7406\u91cd\u590d\u6392\u73ed", `marked ${updates.length} records as history`);
+  return { scanned: schedules.length, groups: groups.size, markedHistory: updates.length };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { ok: false, error: "Method not allowed" });
   try {
     const body = await readJson(req);
+    if (body.action === "cleanup-duplicates") {
+      const result = await cleanupDuplicateSchedules();
+      return json(res, 200, { ok: true, ...result });
+    }
     const startDate = body.month ? `${body.month}-01` : body.startDate;
     const days = body.month ? monthDays(body.month) : Math.max(1, Math.min(31, Number(body.days || 7)));
     if (!startDate) return json(res, 400, { ok: false, error: "Missing startDate or month" });
@@ -103,7 +153,7 @@ module.exports = async function handler(req, res) {
     const created = await createRecords("schedules", output);
     await audit("\u81ea\u52a8\u6392\u73ed", `${startDate} for ${days} days, created ${created.length}`);
     await sendBotText(`\u3010\u6392\u73ed\u751f\u6210\u3011${startDate} \u8d77 ${days} \u5929\uff0c\u5171 ${created.length} \u6761`);
-    json(res, 200, { ok: true, created: created.length, schedules: created });
+    json(res, 200, { ok: true, count: created.length, created: created.length, missing: output.filter((item) => !item[F.scheduleAnchor]).length, schedules: created });
   } catch (error) {
     handleError(res, error);
   }

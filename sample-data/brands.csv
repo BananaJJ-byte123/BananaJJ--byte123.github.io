@@ -1,7 +1,9 @@
-品牌ID,品牌名,类目,需要语言,直播间名称,优先级,状态
-B001,GlowBeauty,美妆,English,Beauty Room EN,1,启用
-B002,Cantik Store,美妆,Bahasa Indonesia,Beauty Room ID,1,启用
-B003,UrbanFit,服装,English,Fashion Room EN,2,启用
-B004,ModeIndo,服装,Bahasa Indonesia,Fashion Room ID,2,启用
-B005,TechMall,3C,English,Tech Room EN,3,启用
-B006,Gadget Nusantara,3C,Bahasa Indonesia,Tech Room ID,3,启用
+﻿品牌ID,品牌名,类目,需要语言,直播间名称,优先级,状态
+BRAND001,HISENSE,,Bahasa Indonesia,HISENSE TIKTOK OFFICIAL,1,启用
+BRAND002,HISENSE,,Bahasa Indonesia,HISENSE SHOPEE,1,启用
+BRAND003,HISENSE,,Bahasa Indonesia,HISENSE TIKTOK INDONESIA,1,启用
+BRAND004,MAMYPOKO,,Bahasa Indonesia,Mamypoko Tidak Gembung (MPPT) Tiktok,1,启用
+BRAND005,MAMYPOKO,,Bahasa Indonesia,Skin Comfort - Tiktok,1,启用
+BRAND006,MAMYPOKO,,Bahasa Indonesia,Junior Night Pants (JNP) - Tiktok,1,启用
+BRAND007,POSE,,Bahasa Indonesia,POSE,1,启用
+BRAND008,INNISFREE,,Bahasa Indonesia,INNISFREE,1,启用

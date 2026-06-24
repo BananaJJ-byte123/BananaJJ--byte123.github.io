@@ -1,4 +1,4 @@
-const { json, readJson, listRecords, createRecords, updateRecords, sendBotText, handleError } = require("../lib/_feishu");
+const { json, readJson, createRecords, sendBotText, handleError } = require("../lib/_feishu");
 const { audit } = require("../lib/_audit");
 
 const F = {
@@ -14,48 +14,28 @@ function val(record, key) {
   return value == null ? "" : String(value);
 }
 
-async function releaseLeaveShift(fields) {
-  if (fields[F.type] !== "\u8bf7\u5047") return null;
-  const schedules = await listRecords("schedules");
-  const match = schedules.find((item) =>
-    val(item, F.scheduleAnchor) === fields[F.anchorName] &&
-    val(item, F.scheduleDate) === fields[F.date] &&
-    (!fields[F.start] || val(item, F.scheduleStart) === fields[F.start]) &&
-    (!fields[F.end] || val(item, F.scheduleEnd) === fields[F.end])
-  );
-  if (!match) return null;
-  const updated = await updateRecords("schedules", [{
-    record_id: match.record_id,
-    fields: {
-      [F.scheduleAnchor]: "",
-      [F.scheduleStatus]: "\u7f3a\u4eba",
-      [F.note]: `\u8bf7\u5047\u81ea\u52a8\u91ca\u653e\uff1a${fields[F.anchorName]}`
-    }
-  }]);
-  return updated[0] || null;
-}
-
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { ok: false, error: "Method not allowed" });
   try {
     const body = await readJson(req);
-    if (!body.anchorName || !body.type || !body.date) return json(res, 400, { ok: false, error: "Missing declaration fields" });
-    const fields = {
-      [F.declarationId]: body.declarationId || `D${Date.now()}`,
+    if (!body.anchorName) return json(res, 400, { ok: false, error: "Missing anchorName" });
+    const incoming = Array.isArray(body.records) ? body.records : [body];
+    const fieldsList = incoming.map((item, index) => ({
+      [F.declarationId]: item.declarationId || `D${Date.now()}-${index + 1}`,
       [F.anchorName]: body.anchorName,
-      [F.type]: body.type,
-      [F.date]: body.date,
-      [F.start]: body.startTime || "",
-      [F.end]: body.endTime || "",
-      [F.originalShift]: body.originalShift || "",
-      [F.reason]: body.reason || "",
-      [F.status]: "\u5f85\u5904\u7406"
-    };
-    const created = await createRecords("declarations", [fields]);
-    const releasedSchedule = await releaseLeaveShift(fields);
-    await audit("\u4e3b\u64ad\u7533\u62a5", `${body.anchorName} ${body.type} ${body.date}`);
-    await sendBotText(`\u3010\u4e3b\u64ad\u7533\u62a5\u3011${body.anchorName} ${body.type} ${body.date}`);
-    json(res, 200, { ok: true, record: created[0] || null, releasedSchedule });
+      [F.type]: item.type || body.type || "\u7a7a\u95f2\u65f6\u95f4",
+      [F.date]: item.date || body.date || "",
+      [F.start]: item.startTime || body.startTime || "",
+      [F.end]: item.endTime || body.endTime || "",
+      [F.originalShift]: item.originalShift || body.originalShift || "",
+      [F.reason]: item.reason ?? body.reason ?? "",
+      [F.status]: item.status || body.status || "\u5f85\u5904\u7406"
+    })).filter((fields) => fields[F.date] && fields[F.start] && fields[F.end]);
+    if (!fieldsList.length) return json(res, 400, { ok: false, error: "Missing declaration time records" });
+    const created = await createRecords("declarations", fieldsList);
+    await audit("\u4e3b\u64ad\u7533\u62a5", `${body.anchorName} ${fieldsList.length} records`);
+    await sendBotText(`\u3010\u4e3b\u64ad\u7533\u62a5\u3011${body.anchorName} \u63d0\u4ea4 ${fieldsList.length} \u6761\u7a7a\u95f2\u65f6\u95f4`);
+    json(res, 200, { ok: true, count: created.length, records: created });
   } catch (error) {
     handleError(res, error);
   }

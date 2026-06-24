@@ -34,6 +34,10 @@ function hours(schedule) {
   return Math.max(0, (minutes(val(schedule, F.scheduleEnd)) - minutes(val(schedule, F.scheduleStart))) / 60);
 }
 
+function isActiveSchedule(schedule) {
+  return !["\u5386\u53f2", "\u5df2\u53d6\u6d88"].includes(val(schedule, F.scheduleStatus));
+}
+
 function assertNotLocked(schedule) {
   const start = new Date(`${val(schedule, F.scheduleDate)}T${val(schedule, F.scheduleStart) || "00:00"}:00`);
   if (!Number.isNaN(start.getTime()) && start.getTime() - Date.now() < LOCK_WINDOW_HOURS * 3600 * 1000) {
@@ -59,7 +63,7 @@ function buildReason(mode, fromScheduleId, toScheduleId, targetAnchorName, reaso
 }
 
 async function requestSwap(body) {
-  const schedules = await listRecords("schedules");
+  const schedules = (await listRecords("schedules")).filter(isActiveSchedule);
   const from = findById(schedules, body.fromScheduleId);
   const to = body.toScheduleId ? findById(schedules, body.toScheduleId) : null;
   if (!from) return { status: 400, payload: { ok: false, error: "Source schedule not found" } };
@@ -86,7 +90,8 @@ async function requestSwap(body) {
 }
 
 async function acceptSwap(body) {
-  const [declarations, schedules] = await Promise.all([listRecords("declarations"), listRecords("schedules")]);
+  const [declarations, schedulesRaw] = await Promise.all([listRecords("declarations"), listRecords("schedules")]);
+  const schedules = schedulesRaw.filter(isActiveSchedule);
   const declaration = findById(declarations, body.declarationRecordId);
   if (!declaration) return { status: 404, payload: { ok: false, error: "Swap request not found" } };
   const meta = parseMeta(val(declaration, F.reason));

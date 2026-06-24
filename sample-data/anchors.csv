@@ -1,7 +1,27 @@
-主播ID,姓名,英文名,飞书用户,语言,国家,时区,擅长类目,等级,月目标工时,每日最多场次,状态
-A001,Anna Smith,Anna,,English,US,UTC-5,美妆,A,60,2,正常
-A002,Siti Rahma,Siti,,Bahasa Indonesia,Indonesia,UTC+7,美妆,A,60,2,正常
-A003,John Lee,John,,English,Philippines,UTC+8,3C,B,54,2,正常
-A004,Dewi Putri,Dewi,,Bahasa Indonesia,Indonesia,UTC+7,服装,B,54,2,正常
-A005,Maria Chen,Maria,,English,Malaysia,UTC+8,服装,A,60,2,正常
-A006,Rizky Adi,Rizky,,Bahasa Indonesia,Indonesia,UTC+7,3C,C,48,2,正常
+﻿主播ID,姓名,英文名,飞书用户,语言,国家,时区,擅长类目,等级,月目标工时,每日最多场次,状态
+HOST001,Arimbi Presilia,Arimbi,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST002,Darlina Jemesti,Darlina,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST003,Fitrotun Nisa (freelance),Fitrotun,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST004,Hanifah Fauziah,Hanifah,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST005,Indah Nur Laeli,Indah,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST006,Irfan Wahyu Saputro,Irfan,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST007,Juanita Faradina,Juanita,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST008,Kiara Putri Maharani,Kiara,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST009,Leli Oktaviana,Leli,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST010,Linda Rahayu,Linda,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST011,Mahas Mahaseso Sumbogo,Mahas,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST012,Marcelinus Berkat Harefa,Marcelinus,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST013,Muhamad Aldi Firdaus,Muhamad,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST014,Muhammad Andhika Febriawan,Muhammad,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST015,Nadia Setya Ningrum,Nadia,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST016,Nandyta Putri Kheisha Azzahra,Nandyta,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST017,Nisa Elsiana,Nisa,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST018,Nur Ratu Azzizah,Nur,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST019,Saadah Nur Amelia,Saadah,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST020,Savira Kathleen Simanhadi,Savira,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST021,Sindy,Sindy,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST022,Siska Permata Sari,Siska,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST023,Valen Friliani,Valen,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST024,Violin Kokari,Violin,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST025,Vivian,Vivian,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常
+HOST026,Yenita Dian Kartika,Yenita,,Bahasa Indonesia,Indonesia,UTC+7,,B,126,2,正常

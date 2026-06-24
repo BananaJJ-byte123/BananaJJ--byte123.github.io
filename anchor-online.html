@@ -14,7 +14,9 @@
     .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
     .lang { width:auto; min-width:132px; border-color:#344054; background:#fff; color:#111827; padding:7px 9px; border-radius:6px; }
     main { padding:14px; }
-    h1,h2,h3,p { margin-top:0; } h1 { font-size:22px; margin-bottom:4px; } h2 { font-size:18px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { font-size:22px; margin-bottom:4px; }
+    h2 { font-size:18px; }
     .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:12px; }
     .tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
     .tab { border:1px solid var(--line); background:#fff; color:#344054; border-radius:6px; padding:10px; font-weight:800; }
@@ -26,22 +28,28 @@
     button { border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:6px; padding:10px 12px; cursor:pointer; font-weight:800; }
     button.secondary { border-color:var(--line); background:#fff; color:var(--ink); }
     button.good { border-color:#bfe8d3; background:#f1fbf6; color:var(--green); }
-    .muted { color:var(--muted); } .small { font-size:12px; }
+    .muted { color:var(--muted); }
+    .small { font-size:12px; }
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .profile { display:flex; gap:8px; align-items:end; flex-wrap:wrap; }
     .profile label { flex:1 1 260px; margin:0; }
-    .name-field { position:relative; flex:1 1 260px; }
+    .name-field,.slot-field { position:relative; flex:1 1 260px; }
     .name-field label { margin:0 0 6px; }
-    .suggestions { position:absolute; left:0; right:0; top:100%; z-index:10; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 28px rgba(15,23,42,.14); margin-top:4px; overflow:hidden; }
+    .suggestions { position:absolute; left:0; right:0; top:100%; z-index:20; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 28px rgba(15,23,42,.14); margin-top:4px; overflow:hidden; }
     .suggestions:empty { display:none; }
     .suggestion { display:block; width:100%; border:0; border-bottom:1px solid var(--line); border-radius:0; background:#fff; color:var(--ink); text-align:left; padding:10px 12px; font-weight:700; cursor:pointer; }
     .suggestion:hover,.suggestion.active { background:#eef4ff; color:#1849b8; }
     .suggestion:last-child { border-bottom:0; }
     .suggestion small { display:block; color:var(--muted); font-weight:400; margin-top:2px; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px; }
+    .chip { display:inline-flex; gap:6px; align-items:center; border:1px solid #b7c7ff; background:#eef4ff; color:#1849b8; border-radius:999px; padding:6px 10px; font-weight:800; }
+    .chip button { border:0; background:transparent; color:inherit; padding:0; line-height:1; }
     .shift { border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:10px; background:#fff; }
     .shift-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
     .badge { display:inline-flex; border-radius:999px; padding:3px 8px; font-size:12px; font-weight:800; }
-    .green { background:#e8f7ef; color:#106b49; } .amber { background:#fff4df; color:#99610f; } .blue { background:#e8efff; color:#1849b8; }
+    .green { background:#e8f7ef; color:#106b49; }
+    .amber { background:#fff4df; color:#99610f; }
+    .blue { background:#e8efff; color:#1849b8; }
     .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--dark); color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; max-width:90vw; }
     .toast.show { opacity:1; }
     .loading-bar { position:fixed; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,var(--blue),var(--green),var(--amber)); transform:scaleX(0); transform-origin:left; opacity:0; transition:opacity .15s; z-index:50; animation:loadingMove 1.1s ease-in-out infinite; }
@@ -58,7 +66,7 @@
       <div class="topbar">
         <div>
           <h1 data-i18n="title">主播自助入口</h1>
-          <p class="small" style="color:#cbd5e1;margin:0;" data-i18n="subtitle">查看班表，确认班次，提交请假和换班申请</p>
+          <p class="small" style="color:#cbd5e1;margin:0;" data-i18n="subtitle">查看班表，确认班次，提交空闲时间和换班申请</p>
         </div>
         <select id="lang" class="lang" onchange="setLang(this.value)" aria-label="Language">
           <option value="zh">中文</option>
@@ -70,7 +78,11 @@
     <main>
       <section class="card">
         <div class="profile">
-          <div class="name-field"><label for="anchorName"><span data-i18n="anchorName">主播姓名</span></label><input id="anchorName" placeholder="Siti Rahma / Anna Smith" autocomplete="off" oninput="handleAnchorInput()" onfocus="renderAnchorSuggestions()" onkeydown="handleAnchorKey(event)"><div id="anchorSuggestions" class="suggestions" role="listbox"></div></div>
+          <div class="name-field">
+            <label for="anchorName"><span data-i18n="anchorName">主播姓名</span></label>
+            <input id="anchorName" placeholder="Arimbi Presilia" autocomplete="off" oninput="handleAnchorInput()" onfocus="renderAnchorSuggestions()" onkeydown="handleAnchorKey(event)">
+            <div id="anchorSuggestions" class="suggestions" role="listbox"></div>
+          </div>
           <button onclick="saveAnchor()" data-i18n="saveName">保存</button>
           <button class="secondary" onclick="loadAll()" data-i18n="refresh">刷新</button>
         </div>
@@ -79,7 +91,7 @@
       <nav class="tabs">
         <button class="tab active" data-tab="schedule" onclick="setTab('schedule')" data-i18n="tabSchedule">我的班表</button>
         <button class="tab" data-tab="swap" onclick="setTab('swap')" data-i18n="tabSwap">换班池</button>
-        <button class="tab" data-tab="request" onclick="setTab('request')" data-i18n="tabRequest">提交申报</button>
+        <button class="tab" data-tab="request" onclick="setTab('request')" data-i18n="tabRequest">空闲时间</button>
       </nav>
 
       <section id="scheduleView" class="card">
@@ -93,16 +105,19 @@
       </section>
 
       <section id="requestView" class="card hidden">
-        <h2 data-i18n="requestTitle">提交申请</h2>
-        <label><span data-i18n="declarationType">申报类型</span><select id="type"></select></label>
+        <h2 data-i18n="requestTitle">追加空闲时间</h2>
         <div class="grid">
-          <label><span data-i18n="date">日期</span><input id="date" type="date"></label>
-          <label><span data-i18n="originalShift">原班次</span><input id="originalShift" placeholder="可选"></label>
-          <label><span data-i18n="startTime">开始时间</span><input id="startTime" type="time" value="09:00"></label>
-          <label><span data-i18n="endTime">结束时间</span><input id="endTime" type="time" value="12:00"></label>
+          <label><span data-i18n="startDate">起始日期</span><input id="availableDate" type="date"></label>
+          <label><span data-i18n="days">持续天数</span><input id="availableDays" type="number" min="1" max="31" value="1"></label>
         </div>
-        <label><span data-i18n="reason">原因/备注</span><textarea id="reason" placeholder="请简单说明原因"></textarea></label>
-        <button onclick="submitDeclaration()" data-i18n="submitButton">提交给主管</button>
+        <label><span data-i18n="slotPicker">每日空闲班次</span></label>
+        <div class="slot-field">
+          <input id="slotSearch" placeholder="09 / 09:00-12:00" autocomplete="off" oninput="renderSlotSuggestions()" onfocus="renderSlotSuggestions()" onkeydown="handleSlotKey(event)">
+          <div id="slotSuggestions" class="suggestions" role="listbox"></div>
+        </div>
+        <div id="slotChips" class="chips"></div>
+        <label><span data-i18n="reason">备注</span><textarea id="reason" placeholder="可选"></textarea></label>
+        <button onclick="submitAvailability()" data-i18n="submitButton">提交空闲时间</button>
       </section>
     </main>
   </div>
@@ -111,41 +126,42 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { anchors: [], schedules: [], declarations: [], selectedSwapFrom: "", swapMode: "exchange", activeSuggestion: 0, tab: "schedule", loading: 0 };
-    const declarationValues = [
-      { value:"请假", label:{ zh:"请假", en:"Leave", id:"Cuti" } },
-      { value:"换班", label:{ zh:"换班", en:"Shift swap", id:"Tukar shift" } },
-      { value:"空闲时间", label:{ zh:"空闲时间", en:"Available time", id:"Waktu tersedia" } }
-    ];
+    const state = { anchors: [], schedules: [], declarations: [], templates: [], selectedSwapFrom: "", swapMode: "exchange", activeSuggestion: 0, activeSlotSuggestion: 0, selectedSlots: [], tab: "schedule", loading: 0 };
+    const F = {
+      name:"姓名", english:"英文名", language:"语言", country:"国家", category:"擅长类目", status:"状态",
+      scheduleDate:"日期", shift:"班次", start:"开始时间", end:"结束时间", scheduleAnchor:"主播姓名", brand:"品牌", room:"直播间", note:"备注",
+      declarationAnchor:"主播姓名", declarationType:"申报类型", reason:"原因", originalShift:"原班次",
+      templateName:"班次名称"
+    };
     const i18n = {
       zh: {
-        title:"主播自助入口", subtitle:"查看班表，确认班次，提交请假和换班申请", anchorName:"主播姓名", saveName:"保存", refresh:"刷新",
-        tabSchedule:"我的班表", tabSwap:"换班池", tabRequest:"提交申报", scheduleTitle:"我的近期排班", swapTitle:"换班池", requestTitle:"提交申请", declarationType:"申报类型",
-        date:"日期", originalShift:"原班次", startTime:"开始时间", endTime:"结束时间", reason:"原因/备注", submitButton:"提交给主管",
-        required:"请填写主播姓名和日期", pickAnchor:"请先从主播名单中选择姓名", noAnchor:"未匹配到主播，请检查姓名", submitted:"已提交，主管会收到通知", saved:"已保存主播姓名", empty:"暂无排班", confirmed:"班次已确认",
+        title:"主播自助入口", subtitle:"查看班表，确认班次，提交空闲时间和换班申请", anchorName:"主播姓名", saveName:"保存", refresh:"刷新",
+        tabSchedule:"我的班表", tabSwap:"换班池", tabRequest:"空闲时间", scheduleTitle:"我的近期排班", swapTitle:"换班池", requestTitle:"追加空闲时间",
+        startDate:"起始日期", days:"持续天数", slotPicker:"每日空闲班次", reason:"备注", submitButton:"提交空闲时间",
+        required:"请填写主播姓名、起始日期和空闲班次", pickAnchor:"请先从主播名单中选择姓名", noAnchor:"未匹配到主播，请检查姓名", submitted:"已提交空闲时间", saved:"已保存主播姓名", empty:"暂无数据", confirmed:"班次已确认",
         confirm:"确认班次", time:"时间", brand:"品牌", room:"直播间", status:"状态", swap:"发起换班", swapFrom:"我的班次", swapTo:"想换的对方班次",
-        submitSwap:"提交换班请求", incoming:"发给我的请求", outgoing:"我发起的请求", accept:"同意换班", reject:"拒绝", swapMode:"换班模式", exchange:"等价互换", cover:"请别人代我的班", coverAnchor:"请谁代班", swapSent:"换班请求已发出", swapDone:"换班已完成"
+        submitSwap:"提交换班请求", incoming:"发给我的请求", outgoing:"我发起的请求", availability:"匹配空闲主播", accept:"同意换班", reject:"拒绝", swapMode:"换班模式", exchange:"等价互换", cover:"请别人代我的班", coverAnchor:"请谁代班", swapSent:"换班请求已发出", swapDone:"换班已完成", selectCover:"选为代班主播"
       },
       en: {
-        title:"Anchor Self-Service", subtitle:"View schedules, confirm shifts, and submit leave or swap requests", anchorName:"Anchor name", saveName:"Save", refresh:"Refresh",
-        tabSchedule:"My schedule", tabSwap:"Swap pool", tabRequest:"Submit request", scheduleTitle:"My Upcoming Schedule", swapTitle:"Swap Pool", requestTitle:"Submit Request", declarationType:"Request type",
-        date:"Date", originalShift:"Original shift", startTime:"Start time", endTime:"End time", reason:"Reason / notes", submitButton:"Submit to manager",
-        required:"Please enter anchor name and date", pickAnchor:"Please select a name from the anchor list", noAnchor:"No matching anchor. Please check the name.", submitted:"Submitted. The manager will be notified.", saved:"Anchor name saved", empty:"No schedules yet", confirmed:"Shift confirmed",
+        title:"Host Self-Service", subtitle:"View schedules, confirm shifts, submit availability and swap requests", anchorName:"Host name", saveName:"Save", refresh:"Refresh",
+        tabSchedule:"My schedule", tabSwap:"Swap pool", tabRequest:"Availability", scheduleTitle:"My Upcoming Schedule", swapTitle:"Swap Pool", requestTitle:"Add Availability",
+        startDate:"Start date", days:"Days", slotPicker:"Available shifts per day", reason:"Notes", submitButton:"Submit availability",
+        required:"Please enter host name, start date, and available shifts", pickAnchor:"Please select a name from the host list", noAnchor:"No matching host. Please check the name.", submitted:"Availability submitted", saved:"Host name saved", empty:"No data", confirmed:"Shift confirmed",
         confirm:"Confirm shift", time:"Time", brand:"Brand", room:"Room", status:"Status", swap:"Request swap", swapFrom:"My shift", swapTo:"Target shift",
-        submitSwap:"Send swap request", incoming:"Requests to me", outgoing:"My requests", accept:"Accept swap", reject:"Reject", swapMode:"Swap mode", exchange:"Exchange shifts", cover:"Ask someone to cover me", coverAnchor:"Cover by", swapSent:"Swap request sent", swapDone:"Swap completed"
+        submitSwap:"Send swap request", incoming:"Requests to me", outgoing:"My requests", availability:"Matching available hosts", accept:"Accept swap", reject:"Reject", swapMode:"Swap mode", exchange:"Exchange shifts", cover:"Ask someone to cover me", coverAnchor:"Cover by", swapSent:"Swap request sent", swapDone:"Swap completed", selectCover:"Use as cover host"
       },
       id: {
-        title:"Portal Anchor", subtitle:"Lihat jadwal, konfirmasi shift, dan kirim cuti atau tukar shift", anchorName:"Nama anchor", saveName:"Simpan", refresh:"Refresh",
-        tabSchedule:"Jadwal saya", tabSwap:"Pool tukar", tabRequest:"Kirim permintaan", scheduleTitle:"Jadwal Saya", swapTitle:"Pool Tukar Shift", requestTitle:"Kirim Permintaan", declarationType:"Jenis permintaan",
-        date:"Tanggal", originalShift:"Shift awal", startTime:"Waktu mulai", endTime:"Waktu selesai", reason:"Alasan / catatan", submitButton:"Kirim ke supervisor",
-        required:"Mohon isi nama anchor dan tanggal", pickAnchor:"Pilih nama dari daftar anchor", noAnchor:"Anchor tidak ditemukan. Periksa nama.", submitted:"Terkirim. Supervisor akan menerima notifikasi.", saved:"Nama anchor tersimpan", empty:"Belum ada jadwal", confirmed:"Shift dikonfirmasi",
+        title:"Portal Host", subtitle:"Lihat jadwal, konfirmasi shift, kirim ketersediaan dan tukar shift", anchorName:"Nama host", saveName:"Simpan", refresh:"Refresh",
+        tabSchedule:"Jadwal saya", tabSwap:"Pool tukar", tabRequest:"Ketersediaan", scheduleTitle:"Jadwal Saya", swapTitle:"Pool Tukar Shift", requestTitle:"Tambah Ketersediaan",
+        startDate:"Tanggal mulai", days:"Hari", slotPicker:"Shift tersedia per hari", reason:"Catatan", submitButton:"Kirim ketersediaan",
+        required:"Isi nama host, tanggal mulai, dan shift tersedia", pickAnchor:"Pilih nama dari daftar host", noAnchor:"Host tidak ditemukan. Periksa nama.", submitted:"Ketersediaan terkirim", saved:"Nama host tersimpan", empty:"Belum ada data", confirmed:"Shift dikonfirmasi",
         confirm:"Konfirmasi shift", time:"Waktu", brand:"Brand", room:"Room", status:"Status", swap:"Minta tukar", swapFrom:"Shift saya", swapTo:"Shift tujuan",
-        submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", accept:"Setujui tukar", reject:"Tolak", swapMode:"Mode tukar", exchange:"Tukar setara", cover:"Minta orang mengganti saya", coverAnchor:"Digantikan oleh", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai"
+        submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", availability:"Host tersedia cocok", accept:"Setujui tukar", reject:"Tolak", swapMode:"Mode tukar", exchange:"Tukar setara", cover:"Minta orang mengganti saya", coverAnchor:"Digantikan oleh", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai", selectCover:"Pilih sebagai pengganti"
       }
     };
     let currentLang = localStorage.getItem("uiLang") || "zh";
     $("anchorName").value = localStorage.getItem("anchorName") || "";
-    $("date").value = new Date().toISOString().slice(0,10);
+    $("availableDate").value = new Date().toISOString().slice(0,10);
 
     function t() { return i18n[currentLang]; }
     function text(value) {
@@ -155,95 +171,31 @@
     }
     function field(r, name) { return text(r.fields?.[name]); }
     function norm(value) { return text(value).trim().toLowerCase(); }
-    function anchorName(anchor) { return field(anchor, "姓名"); }
-    function anchorEnglishName(anchor) { return field(anchor, "英文名"); }
-    function jsArg(value) { return JSON.stringify(String(value || "")); }
-    function resolveAnchorName(value) {
-      const target = norm(value);
+    function isActiveSchedule(r) { const status = field(r, F.status); return status !== "历史" && status !== "已取消"; }
+    function anchorName(anchor) { return field(anchor, F.name); }
+    function anchorEnglishName(anchor) { return field(anchor, F.english); }
+    function currentAnchorName() {
+      const target = norm($("anchorName").value);
       if (!target) return "";
       const anchor = state.anchors.find((item) => norm(anchorName(item)) === target || norm(anchorEnglishName(item)) === target);
       return anchor ? anchorName(anchor) : "";
     }
-    function renderAnchorSuggestions() {
-      const box = $("anchorSuggestions");
-      if (!box) return;
-      const query = norm($("anchorName").value);
-      const matches = state.anchors
-        .filter((anchor) => !query || norm(anchorName(anchor)).includes(query) || norm(anchorEnglishName(anchor)).includes(query))
-        .slice(0, 8);
-      box.innerHTML = matches.map((anchor) => {
-        const name = anchorName(anchor);
-        const english = anchorEnglishName(anchor);
-        const meta = [field(anchor, "语言"), field(anchor, "国家"), field(anchor, "擅长类目")].filter(Boolean).join(" · ");
-        return `<div class="suggestion" role="option" tabindex="0" data-name="${name.replace(/"/g, "&quot;")}">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></div>`;
-      }).join("");
-      state.activeSuggestion = 0;
-      updateSuggestionActive();
+    function addDays(date, days) {
+      const d = new Date(`${date}T00:00:00`);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
     }
-    function handleAnchorInput() {
-      renderAnchorSuggestions();
-      render();
-    }
-    function selectAnchorName(name) {
-      $("anchorName").value = name;
-      $("anchorSuggestions").innerHTML = "";
-      localStorage.setItem("anchorName", name);
-      render();
-    }
-    function suggestionItems() {
-      return [...$("anchorSuggestions").querySelectorAll(".suggestion")];
-    }
-    function updateSuggestionActive() {
-      suggestionItems().forEach((item, index) => item.classList.toggle("active", index === state.activeSuggestion));
-    }
-    function pickActiveSuggestion() {
-      const item = suggestionItems()[state.activeSuggestion];
-      if (item?.dataset.name) selectAnchorName(item.dataset.name);
-    }
-    function handleAnchorKey(event) {
-      const items = suggestionItems();
-      if (!items.length) return;
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        state.activeSuggestion = Math.min(items.length - 1, state.activeSuggestion + 1);
-        updateSuggestionActive();
-      }
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        state.activeSuggestion = Math.max(0, state.activeSuggestion - 1);
-        updateSuggestionActive();
-      }
-      if (event.key === "Enter") {
-        event.preventDefault();
-        pickActiveSuggestion();
-      }
-    }
-    function currentAnchorName() {
-      return resolveAnchorName($("anchorName").value);
-    }
-    function dedupeSchedules(records) {
-      const priority = { "已确认":4, "已发布":3, "草稿":2, "缺人":1 };
-      const map = new Map();
-      for (const record of records) {
-        const key = field(record, "排班ID") || [field(record, "日期"), field(record, "班次"), field(record, "开始时间"), field(record, "结束时间"), field(record, "品牌"), field(record, "直播间"), field(record, "主播姓名")].join("|");
-        const existing = map.get(key);
-        if (!existing || (priority[field(record, "状态")] || 0) >= (priority[field(existing, "状态")] || 0)) map.set(key, record);
-      }
-      return [...map.values()];
-    }
+    function jsArg(value) { return JSON.stringify(String(value || "")); }
     function setLang(lang) {
       currentLang = lang;
       localStorage.setItem("uiLang", lang);
       $("lang").value = lang;
       document.documentElement.lang = lang === "id" ? "id" : lang === "en" ? "en" : "zh-CN";
       document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t()[el.dataset.i18n]; });
-      const selected = $("type").value || "请假";
-      $("type").innerHTML = declarationValues.map((item) => `<option value="${item.value}">${item.label[lang]}</option>`).join("");
-      $("type").value = selected;
       render();
     }
-    function toast(text) {
-      const el = $("toast"); el.textContent = text; el.classList.add("show");
+    function toast(message) {
+      const el = $("toast"); el.textContent = message; el.classList.add("show");
       clearTimeout(window.__toast); window.__toast = setTimeout(() => el.classList.remove("show"), 1800);
     }
     function setLoading(active) {
@@ -257,11 +209,7 @@
         const res = await fetch(path, options);
         const body = await res.text();
         let data;
-        try {
-          data = JSON.parse(body);
-        } catch (error) {
-          throw new Error(`API returned ${res.status}: ${body.slice(0, 80)}`);
-        }
+        try { data = JSON.parse(body); } catch { throw new Error(`API returned ${res.status}: ${body.slice(0, 80)}`); }
         if (!data.ok) throw new Error(data.error || "API error");
         return data;
       } finally {
@@ -270,31 +218,98 @@
     }
     async function anchorBootstrap() {
       try {
-        return await api("/api/anchor-bootstrap");
-      } catch (error) {
-        const [anchors, schedules, declarations] = await Promise.all([
+        const data = await api("/api/anchor-bootstrap");
+        if (!data.records.templates) {
+          const templates = await api("/api/data?type=templates");
+          data.records.templates = templates.records || [];
+        }
+        return data;
+      } catch {
+        const [anchors, schedules, declarations, templates] = await Promise.all([
           api("/api/data?type=anchors"),
           api("/api/data?type=schedules"),
-          api("/api/data?type=declarations")
+          api("/api/data?type=declarations"),
+          api("/api/data?type=templates")
         ]);
-        return {
-          ok: true,
-          records: {
-            anchors: anchors.records || [],
-            schedules: schedules.records || [],
-            declarations: declarations.records || []
-          }
-        };
+        return { ok:true, records:{ anchors:anchors.records || [], schedules:schedules.records || [], declarations:declarations.records || [], templates:templates.records || [] } };
       }
+    }
+    function dedupeSchedules(records) {
+      const priority = { "已确认":4, "已发布":3, "草稿":2, "缺人":1 };
+      const map = new Map();
+      for (const record of records) {
+        const key = field(record, "排班ID") || [field(record, F.scheduleDate), field(record, F.shift), field(record, F.start), field(record, F.end), field(record, F.brand), field(record, F.room), field(record, F.scheduleAnchor)].join("|");
+        const existing = map.get(key);
+        if (!existing || (priority[field(record, F.status)] || 0) >= (priority[field(existing, F.status)] || 0)) map.set(key, record);
+      }
+      return [...map.values()];
+    }
+    async function loadAll() {
+      try {
+        const data = await anchorBootstrap();
+        state.anchors = data.records.anchors || [];
+        state.schedules = dedupeSchedules((data.records.schedules || []).filter(isActiveSchedule));
+        state.declarations = data.records.declarations || [];
+        state.templates = data.records.templates || [];
+        renderAnchorSuggestions();
+        renderSlotChips();
+        render();
+      } catch (e) { toast(e.message); }
+    }
+
+    function renderAnchorSuggestions() {
+      const box = $("anchorSuggestions");
+      const query = norm($("anchorName").value);
+      const matches = state.anchors
+        .filter((anchor) => !query || norm(anchorName(anchor)).includes(query) || norm(anchorEnglishName(anchor)).includes(query))
+        .slice(0, 8);
+      box.innerHTML = matches.map((anchor) => {
+        const name = anchorName(anchor);
+        const english = anchorEnglishName(anchor);
+        const meta = [field(anchor, F.language), field(anchor, F.country), field(anchor, F.category)].filter(Boolean).join(" · ");
+        return `<div class="suggestion" role="option" tabindex="0" data-name="${name.replace(/"/g, "&quot;")}">${name}${english && english !== name ? ` / ${english}` : ""}<small>${meta}</small></div>`;
+      }).join("");
+      state.activeSuggestion = 0;
+      updateSuggestionActive("anchorSuggestions", state.activeSuggestion);
+    }
+    function handleAnchorInput() { renderAnchorSuggestions(); render(); }
+    function selectAnchorName(name) {
+      $("anchorName").value = name;
+      $("anchorSuggestions").innerHTML = "";
+      localStorage.setItem("anchorName", name);
+      render();
+    }
+    function suggestionItems(boxId) { return [...$(boxId).querySelectorAll(".suggestion")]; }
+    function updateSuggestionActive(boxId, active) { suggestionItems(boxId).forEach((item, index) => item.classList.toggle("active", index === active)); }
+    function handleAnchorKey(event) {
+      const items = suggestionItems("anchorSuggestions");
+      if (!items.length) return;
+      if (event.key === "ArrowDown") { event.preventDefault(); state.activeSuggestion = Math.min(items.length - 1, state.activeSuggestion + 1); updateSuggestionActive("anchorSuggestions", state.activeSuggestion); }
+      if (event.key === "ArrowUp") { event.preventDefault(); state.activeSuggestion = Math.max(0, state.activeSuggestion - 1); updateSuggestionActive("anchorSuggestions", state.activeSuggestion); }
+      if (event.key === "Enter") { event.preventDefault(); const item = items[state.activeSuggestion]; if (item) selectAnchorName(item.dataset.name); }
+    }
+    function bindSuggestionPicker(boxId, handler) {
+      const box = $(boxId);
+      const pick = (event) => {
+        const item = event.target.closest(".suggestion");
+        if (!item || !box.contains(item)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        handler(item);
+      };
+      box.addEventListener("pointerdown", pick, true);
+      box.addEventListener("mousedown", pick, true);
+      box.addEventListener("click", pick, true);
     }
     function saveAnchor() {
       const name = currentAnchorName();
       if (!name) return toast(t().noAnchor);
-      $("anchorName").value = name;
-      $("anchorSuggestions").innerHTML = "";
-      localStorage.setItem("anchorName", name);
+      selectAnchorName(name);
       toast(t().saved);
-      render();
+    }
+    function badge(status) {
+      const cls = status === "已确认" || status === "可匹配" ? "green" : status === "已发布" ? "blue" : "amber";
+      return `<span class="badge ${cls}">${status || "-"}</span>`;
     }
     function setTab(tab) {
       state.tab = tab;
@@ -304,47 +319,27 @@
       $("requestView").classList.toggle("hidden", tab !== "request");
       render();
     }
-    async function loadAll() {
-      try {
-        const data = await anchorBootstrap();
-        state.anchors = data.records.anchors;
-        state.schedules = dedupeSchedules(data.records.schedules);
-        state.declarations = data.records.declarations;
-        renderAnchorSuggestions();
-        render();
-      } catch (e) { toast(e.message); }
-    }
-    function badge(status) {
-      const cls = status === "已确认" ? "green" : status === "已发布" ? "blue" : "amber";
-      return `<span class="badge ${cls}">${status || "-"}</span>`;
+    function scheduleLabel(r) {
+      return `${field(r,F.scheduleDate)} · ${field(r,F.shift)} · ${field(r,F.start)}-${field(r,F.end)} · ${field(r,F.scheduleAnchor) || "-"} · ${field(r,F.brand)}`;
     }
     function renderSchedule() {
       const typed = $("anchorName").value.trim();
       const name = currentAnchorName();
-      if (!typed) {
-        $("scheduleList").innerHTML = `<p class="muted">${t().pickAnchor}</p>`;
-        return;
-      }
-      if (!name) {
-        $("scheduleList").innerHTML = `<p class="muted">${t().noAnchor}</p>`;
-        return;
-      }
+      if (!typed) return $("scheduleList").innerHTML = `<p class="muted">${t().pickAnchor}</p>`;
+      if (!name) return $("scheduleList").innerHTML = `<p class="muted">${t().noAnchor}</p>`;
       const rows = state.schedules
-        .filter((r) => norm(field(r, "主播姓名")) === norm(name))
-        .sort((a, b) => `${field(a,"日期")} ${field(a,"开始时间")}`.localeCompare(`${field(b,"日期")} ${field(b,"开始时间")}`))
+        .filter((r) => norm(field(r, F.scheduleAnchor)) === norm(name))
+        .sort((a, b) => `${field(a,F.scheduleDate)} ${field(a,F.start)}`.localeCompare(`${field(b,F.scheduleDate)} ${field(b,F.start)}`))
         .slice(0, 30);
-      if (!rows.length) {
-        $("scheduleList").innerHTML = `<p class="muted">${t().empty}</p>`;
-        return;
-      }
+      if (!rows.length) return $("scheduleList").innerHTML = `<p class="muted">${t().empty}</p>`;
       $("scheduleList").innerHTML = rows.map((r) => {
-        const status = field(r, "状态");
+        const status = field(r, F.status);
         return `<article class="shift">
           <div class="shift-head">
             <div>
-              <h3>${field(r,"日期")} · ${field(r,"班次")}</h3>
-              <p class="small muted">${t().time}: ${field(r,"开始时间")}-${field(r,"结束时间")}</p>
-              <p class="small muted">${t().brand}: ${field(r,"品牌")} · ${t().room}: ${field(r,"直播间")}</p>
+              <h3>${field(r,F.scheduleDate)} · ${field(r,F.shift)}</h3>
+              <p class="small muted">${t().time}: ${field(r,F.start)}-${field(r,F.end)}</p>
+              <p class="small muted">${t().brand}: ${field(r,F.brand)} · ${t().room}: ${field(r,F.room)}</p>
             </div>
             <div>${badge(status)}</div>
           </div>
@@ -355,75 +350,75 @@
         </article>`;
       }).join("");
     }
-    function render() {
-      if (state.tab === "schedule") renderSchedule();
-      if (state.tab === "swap") renderSwap();
+    function parseSwapMeta(reason) {
+      const line = String(reason || "").split("\n").find((item) => item.startsWith("SWAP|")) || "";
+      const parts = line.split("|");
+      if (parts.length < 3) return null;
+      return { mode: parts[1] || "exchange", from: parts[2] || "", to: parts[3] || "", target: parts[4] || "" };
     }
-    function parseSwapMeta(text) {
-      if (!text || !text.startsWith("SWAP_REQUEST|")) return null;
-      return Object.fromEntries(text.split("|").slice(1).map((part) => {
-        const i = part.indexOf("=");
-        return i > -1 ? [part.slice(0, i), decodeURIComponent(part.slice(i + 1))] : [part, ""];
-      }));
-    }
-    function scheduleLabel(r) {
-      return `${field(r,"日期")} ${field(r,"班次")} ${field(r,"开始时间")}-${field(r,"结束时间")} · ${field(r,"主播姓名")} · ${field(r,"品牌")}`;
-    }
-    function openSwap(recordId) {
-      state.selectedSwapFrom = recordId;
-      setTab("swap");
+    function availabilityRecordsFor(schedule) {
+      if (!schedule) return [];
+      return state.declarations.filter((record) =>
+        field(record, F.declarationType) === "空闲时间" &&
+        ["待处理", "可匹配"].includes(field(record, F.status)) &&
+        field(record, F.declarationAnchor) !== field(schedule, F.scheduleAnchor) &&
+        field(record, F.scheduleDate) === field(schedule, F.scheduleDate) &&
+        field(record, F.start) === field(schedule, F.start) &&
+        field(record, F.end) === field(schedule, F.end)
+      );
     }
     function renderSwap() {
-      if (!$("swapPanel")) return;
-      const typed = $("anchorName").value.trim();
       const name = currentAnchorName();
-      if (!typed) {
-        $("swapPanel").innerHTML = `<p class="muted">${t().pickAnchor}</p>`;
-        return;
-      }
-      if (!name) {
-        $("swapPanel").innerHTML = `<p class="muted">${t().noAnchor}</p>`;
-        return;
-      }
-      const mine = state.schedules.filter((r) => norm(field(r, "主播姓名")) === norm(name));
-      const others = state.schedules.filter((r) => field(r, "主播姓名") && norm(field(r, "主播姓名")) !== norm(name));
+      if (!$("anchorName").value.trim()) return $("swapPanel").innerHTML = `<p class="muted">${t().pickAnchor}</p>`;
+      if (!name) return $("swapPanel").innerHTML = `<p class="muted">${t().noAnchor}</p>`;
+      const mine = state.schedules.filter((r) => norm(field(r, F.scheduleAnchor)) === norm(name));
+      const others = state.schedules.filter((r) => field(r, F.scheduleAnchor) && norm(field(r, F.scheduleAnchor)) !== norm(name));
+      const selected = mine.find((r) => r.record_id === state.selectedSwapFrom) || mine[0];
+      const available = availabilityRecordsFor(selected);
       const requests = state.declarations
-        .filter((r) => field(r, "申报类型") === "换班")
-        .map((r) => ({ record:r, meta:parseSwapMeta(field(r, "原因")) }))
+        .filter((r) => field(r, F.declarationType) === "换班")
+        .map((r) => ({ record:r, meta:parseSwapMeta(field(r, F.reason)) }))
         .filter((item) => item.meta);
-      const incoming = requests.filter((item) => field(item.record, "状态") === "待处理" && norm(item.meta.target) === norm(name));
-      const outgoing = requests.filter((item) => norm(field(item.record, "主播姓名")) === norm(name));
-      const fromOptions = mine.map((r) => `<option value="${r.record_id}" ${state.selectedSwapFrom === r.record_id ? "selected" : ""}>${scheduleLabel(r)}</option>`).join("");
+      const incoming = requests.filter((item) => field(item.record, F.status) === "待处理" && norm(item.meta.target) === norm(name));
+      const outgoing = requests.filter((item) => norm(field(item.record, F.declarationAnchor)) === norm(name));
+      const fromOptions = mine.map((r) => `<option value="${r.record_id}" ${selected?.record_id === r.record_id ? "selected" : ""}>${scheduleLabel(r)}</option>`).join("");
       const toOptions = others.map((r) => `<option value="${r.record_id}">${scheduleLabel(r)}</option>`).join("");
       const anchorOptions = state.anchors
-        .filter((anchor) => norm(anchorName(anchor)) !== norm(name) && field(anchor, "状态") !== "停用")
-        .map((anchor) => `<option value="${anchorName(anchor)}">${anchorName(anchor)} · ${field(anchor, "语言")} · ${field(anchor, "擅长类目")}</option>`)
+        .filter((anchor) => norm(anchorName(anchor)) !== norm(name) && field(anchor, F.status) !== "停用")
+        .map((anchor) => `<option value="${anchorName(anchor)}">${anchorName(anchor)} · ${field(anchor, F.language)} · ${field(anchor, F.category)}</option>`)
         .join("");
       $("swapPanel").innerHTML = `
         <label>${t().swapMode}<select id="swapMode" onchange="setSwapMode(this.value)"><option value="exchange" ${state.swapMode === "exchange" ? "selected" : ""}>${t().exchange}</option><option value="cover" ${state.swapMode === "cover" ? "selected" : ""}>${t().cover}</option></select></label>
-        <label>${t().swapFrom}<select id="swapFrom">${fromOptions}</select></label>
+        <label>${t().swapFrom}<select id="swapFrom" onchange="state.selectedSwapFrom=this.value;renderSwap()">${fromOptions}</select></label>
         <label id="swapToWrap">${t().swapTo}<select id="swapTo">${toOptions}</select></label>
         <label id="coverAnchorWrap">${t().coverAnchor}<select id="coverAnchor">${anchorOptions}</select></label>
+        <div class="shift"><h3>${t().availability}</h3>${available.map(renderAvailableHost).join("") || `<p class="muted">${t().empty}</p>`}</div>
         <label>${t().reason}<textarea id="swapReason" placeholder="${t().reason}"></textarea></label>
         <button onclick="submitSwapRequest()">${t().submitSwap}</button>
         <div class="shift"><h3>${t().incoming}</h3>${incoming.map(renderSwapRequest).join("") || `<p class="muted">${t().empty}</p>`}</div>
         <div class="shift"><h3>${t().outgoing}</h3>${outgoing.map(renderSwapRequest).join("") || `<p class="muted">${t().empty}</p>`}</div>`;
-      const mode = state.swapMode;
-      $("swapToWrap").classList.toggle("hidden", mode !== "exchange");
-      $("coverAnchorWrap").classList.toggle("hidden", mode !== "cover");
+      $("swapToWrap").classList.toggle("hidden", state.swapMode !== "exchange");
+      $("coverAnchorWrap").classList.toggle("hidden", state.swapMode !== "cover");
     }
-    function setSwapMode(mode) {
-      state.swapMode = mode;
+    function renderAvailableHost(record) {
+      const name = field(record, F.declarationAnchor);
+      return `<div class="shift"><b>${name}</b><p class="small muted">${field(record,F.scheduleDate)} ${field(record,F.start)}-${field(record,F.end)} · ${field(record,F.originalShift)}</p><button class="secondary" onclick="chooseCoverHost(${jsArg(name)})">${t().selectCover}</button></div>`;
+    }
+    function chooseCoverHost(name) {
+      state.swapMode = "cover";
       renderSwap();
+      const select = $("coverAnchor");
+      if (select) select.value = name;
     }
+    function setSwapMode(mode) { state.swapMode = mode; renderSwap(); }
     function renderSwapRequest(item) {
       const from = state.schedules.find((r) => r.record_id === item.meta.from);
       const to = state.schedules.find((r) => r.record_id === item.meta.to);
-      const status = field(item.record, "状态");
+      const status = field(item.record, F.status);
       const isTarget = norm(item.meta.target) === norm(currentAnchorName());
       const modeText = item.meta.mode === "cover" ? t().cover : t().exchange;
       return `<div class="shift">
-        <p class="small muted">${field(item.record, "主播姓名")} -> ${item.meta.target} · ${modeText} · ${badge(status)}</p>
+        <p class="small muted">${field(item.record, F.declarationAnchor)} -> ${item.meta.target} · ${modeText} · ${badge(status)}</p>
         <p><b>${from ? scheduleLabel(from) : item.meta.from}</b></p>
         <p><b>${to ? scheduleLabel(to) : `${t().coverAnchor}: ${item.meta.target}`}</b></p>
         ${isTarget && status === "待处理" ? `<div class="actions"><button class="good" onclick="acceptSwap('${item.record.record_id}')">${t().accept}</button><button class="secondary" onclick="rejectSwap('${item.record.record_id}')">${t().reject}</button></div>` : ""}
@@ -437,98 +432,110 @@
         const targetAnchorName = mode === "cover" ? $("coverAnchor")?.value : "";
         if (!currentAnchorName()) return toast(t().noAnchor);
         if (!fromScheduleId || (mode === "exchange" && !toScheduleId) || (mode === "cover" && !targetAnchorName)) return toast(t().empty);
-        await api("/api/swap", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ action:"request", mode, anchorName:currentAnchorName(), targetAnchorName, fromScheduleId, toScheduleId, reason:$("swapReason").value })
-        });
+        await api("/api/swap", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ action:"request", mode, anchorName:currentAnchorName(), targetAnchorName, fromScheduleId, toScheduleId, reason:$("swapReason").value }) });
         toast(t().swapSent);
         await refreshLiveData();
       } catch (e) { toast(e.message); }
     }
     async function acceptSwap(declarationRecordId) {
       try {
-        await api("/api/swap", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ action:"accept", declarationRecordId, anchorName:currentAnchorName() })
-        });
+        await api("/api/swap", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ action:"accept", declarationRecordId, anchorName:currentAnchorName() }) });
         toast(t().swapDone);
         await refreshLiveData();
       } catch (e) { toast(e.message); }
     }
     async function rejectSwap(declarationRecordId) {
       try {
-        await api("/api/swap", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ action:"reject", declarationRecordId })
-        });
+        await api("/api/swap", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ action:"reject", declarationRecordId }) });
         toast(t().submitted);
-        const record = state.declarations.find((item) => item.record_id === declarationRecordId);
-        if (record) record.fields["状态"] = "已拒绝";
-        render();
+        await refreshLiveData();
       } catch (e) { toast(e.message); }
     }
+    function openSwap(recordId) { state.selectedSwapFrom = recordId; setTab("swap"); }
     async function confirmShift(recordId) {
       try {
-        await api("/api/update", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ type:"schedules", recordId, fields:{ "状态":"已确认" }, notifyText:"主播已确认班次。" })
-        });
+        await api("/api/update", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ type:"schedules", recordId, fields:{ "状态":"已确认" }, notifyText:"主播已确认班次。" }) });
         const record = state.schedules.find((item) => item.record_id === recordId);
-        if (record) record.fields["状态"] = "已确认";
+        if (record) record.fields[F.status] = "已确认";
         toast(t().confirmed);
         render();
       } catch (e) { toast(e.message); }
     }
-    async function submitDeclaration() {
+
+    function slotLabel(template) { return `${field(template, F.templateName)} · ${field(template, F.start)}-${field(template, F.end)}`; }
+    function slotKey(template) { return `${field(template, F.templateName)}|${field(template, F.start)}|${field(template, F.end)}`; }
+    function renderSlotSuggestions() {
+      const box = $("slotSuggestions");
+      const query = norm($("slotSearch").value);
+      const matches = state.templates
+        .filter((item) => field(item, F.status) !== "停用")
+        .filter((item) => !state.selectedSlots.some((slot) => slot.key === slotKey(item)))
+        .filter((item) => !query || norm(slotLabel(item)).includes(query))
+        .slice(0, 8);
+      box.innerHTML = matches.map((item) => `<div class="suggestion" role="option" tabindex="0" data-key="${slotKey(item)}">${slotLabel(item)}</div>`).join("");
+      state.activeSlotSuggestion = 0;
+      updateSuggestionActive("slotSuggestions", state.activeSlotSuggestion);
+    }
+    function addSlotByKey(key) {
+      const template = state.templates.find((item) => slotKey(item) === key);
+      if (!template || state.selectedSlots.some((slot) => slot.key === key)) return;
+      state.selectedSlots.push({ key, name:field(template, F.templateName), start:field(template, F.start), end:field(template, F.end) });
+      $("slotSearch").value = "";
+      $("slotSuggestions").innerHTML = "";
+      renderSlotChips();
+    }
+    function removeSlot(key) {
+      state.selectedSlots = state.selectedSlots.filter((slot) => slot.key !== key);
+      renderSlotChips();
+    }
+    function renderSlotChips() {
+      $("slotChips").innerHTML = state.selectedSlots.map((slot) => `<span class="chip">${slot.name}<button onclick="removeSlot(${jsArg(slot.key)})">x</button></span>`).join("");
+    }
+    function handleSlotKey(event) {
+      const items = suggestionItems("slotSuggestions");
+      if (!items.length) return;
+      if (event.key === "ArrowDown") { event.preventDefault(); state.activeSlotSuggestion = Math.min(items.length - 1, state.activeSlotSuggestion + 1); updateSuggestionActive("slotSuggestions", state.activeSlotSuggestion); }
+      if (event.key === "ArrowUp") { event.preventDefault(); state.activeSlotSuggestion = Math.max(0, state.activeSlotSuggestion - 1); updateSuggestionActive("slotSuggestions", state.activeSlotSuggestion); }
+      if (event.key === "Enter") { event.preventDefault(); const item = items[state.activeSlotSuggestion]; if (item) addSlotByKey(item.dataset.key); }
+    }
+    async function submitAvailability() {
       try {
         const selectedName = currentAnchorName();
-        const body = {
-          anchorName: selectedName,
-          type: $("type").value,
-          date: $("date").value,
-          startTime: $("startTime").value,
-          endTime: $("endTime").value,
-          originalShift: $("originalShift").value,
-          reason: $("reason").value
-        };
-        if (!$("anchorName").value.trim() || !body.date) return toast(t().required);
+        const startDate = $("availableDate").value;
+        const days = Math.max(1, Math.min(31, Number($("availableDays").value || 1)));
+        if (!$("anchorName").value.trim() || !startDate || !state.selectedSlots.length) return toast(t().required);
         if (!selectedName) return toast(t().noAnchor);
-        await api("/api/declarations", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify(body)
-        });
-        toast(t().submitted);
+        const records = [];
+        for (let day = 0; day < days; day += 1) {
+          const date = addDays(startDate, day);
+          for (const slot of state.selectedSlots) {
+            records.push({ type:"空闲时间", date, startTime:slot.start, endTime:slot.end, originalShift:slot.name, status:"待处理", reason:$("reason").value });
+          }
+        }
+        await api("/api/declarations", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ anchorName:selectedName, records }) });
+        toast(`${t().submitted} · ${records.length}`);
         $("reason").value = "";
-        setTab("schedule");
+        state.selectedSlots = [];
+        renderSlotChips();
+        setTab("swap");
         await refreshLiveData();
       } catch (e) { toast(e.message); }
     }
     async function refreshLiveData() {
       const data = await anchorBootstrap();
-      state.anchors = data.records.anchors;
-      state.schedules = dedupeSchedules(data.records.schedules);
-      state.declarations = data.records.declarations;
+      state.anchors = data.records.anchors || [];
+      state.schedules = dedupeSchedules((data.records.schedules || []).filter(isActiveSchedule));
+      state.declarations = data.records.declarations || [];
+      state.templates = data.records.templates || [];
       render();
     }
-    function bindAnchorSuggestionPicker() {
-      const box = $("anchorSuggestions");
-      const pick = (event) => {
-        const item = event.target.closest(".suggestion");
-        if (!item || !box.contains(item)) return;
-        event.preventDefault();
-        event.stopPropagation();
-        selectAnchorName(item.dataset.name || item.textContent.trim().split(" / ")[0]);
-      };
-      box.addEventListener("pointerdown", pick, true);
-      box.addEventListener("mousedown", pick, true);
-      box.addEventListener("click", pick, true);
+    function render() {
+      if (state.tab === "schedule") renderSchedule();
+      if (state.tab === "swap") renderSwap();
+      if (state.tab === "request") renderSlotChips();
     }
-    bindAnchorSuggestionPicker();
+    bindSuggestionPicker("anchorSuggestions", (item) => selectAnchorName(item.dataset.name || item.textContent.trim().split(" / ")[0]));
+    bindSuggestionPicker("slotSuggestions", (item) => addSlotByKey(item.dataset.key));
     setLang(currentLang);
     loadAll();
   </script>

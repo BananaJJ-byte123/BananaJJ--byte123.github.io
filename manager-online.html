@@ -119,6 +119,7 @@
     const $ = (id) => document.getElementById(id);
     const state = { anchors: [], brands: [], templates: [], declarations: [], schedules: [], workload: [], tab: "dashboard", loading: 0, scheduleSort: { key:"日期", dir:"desc" } };
     const field = (r, name) => r.fields?.[name] ?? "";
+    function isActiveSchedule(r) { const status = field(r, "\u72b6\u6001"); return status !== "\u5386\u53f2" && status !== "\u5df2\u53d6\u6d88"; }
     const today = () => new Date().toISOString().slice(0, 10);
     const i18n = {
       zh: {
@@ -198,7 +199,7 @@
         state.brands = data.records.brands;
         state.templates = data.records.templates;
         state.declarations = data.records.declarations;
-        state.schedules = data.records.schedules;
+        state.schedules = data.records.schedules.filter(isActiveSchedule);
         $("health").textContent = JSON.stringify(data.env, null, 2);
         render();
         toast(t().refreshed);
@@ -209,7 +210,7 @@
     }
     async function refreshSchedulesOnly() {
       const data = await api("/api/data?type=schedules");
-      state.schedules = data.records;
+      state.schedules = data.records.filter(isActiveSchedule);
       render();
     }
     async function generateSchedule() {
@@ -238,6 +239,19 @@
           body:JSON.stringify({ month })
         });
         toast(t().generated(data.count, data.missing));
+        await refreshSchedulesOnly();
+        await loadWorkload();
+      } catch (e) { toast(e.message); }
+    }
+    async function cleanupSchedules() {
+      try {
+        toast("\u6b63\u5728\u6e05\u7406\u91cd\u590d\u6392\u73ed...");
+        const data = await api("/api/generate", {
+          method:"POST",
+          headers:{ "content-type":"application/json" },
+          body:JSON.stringify({ action:"cleanup-duplicates" })
+        });
+        toast(`\u5df2\u6807\u8bb0 ${data.markedHistory || 0} \u6761\u65e7\u6392\u73ed\u4e3a\u5386\u53f2`);
         await refreshSchedulesOnly();
         await loadWorkload();
       } catch (e) { toast(e.message); }
@@ -516,6 +530,7 @@
         <button onclick="generateMonthSchedule()">${t().monthSchedule}</button>
         <button onclick="loadWorkload()">${t().workload}</button>
         <button onclick="generateWeeklyAudit()">${t().weeklyAudit}</button>
+        <button onclick="cleanupSchedules()">\u6e05\u7406\u91cd\u590d\u6392\u73ed</button>
       </div></section>
       <section class="panel"><h2>${t().manualPanel}</h2><div class="toolbar">
         <label>${t().startDate}<input id="manualDate" type="date" value="${$("startDate").value || today()}"></label>
