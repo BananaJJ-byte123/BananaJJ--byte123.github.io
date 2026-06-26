@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>主管排班后台</title>
+  <title>Manager Console</title>
   <style>
     :root {
       --bg:#f5f7fb; --card:#fff; --ink:#111827; --muted:#667085; --line:#d8dee8;
@@ -13,7 +13,10 @@
     body { margin:0; font-family:Arial,"Microsoft YaHei",sans-serif; color:var(--ink); background:var(--bg); }
     body.loading, body.loading * { cursor:progress !important; }
     header { background:var(--dark); color:#fff; padding:16px 22px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
-    h1,h2,h3,p { margin-top:0; } h1 { font-size:20px; margin-bottom:4px; } h2 { font-size:18px; } h3 { font-size:15px; margin-bottom:8px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { font-size:20px; margin-bottom:4px; }
+    h2 { font-size:18px; }
+    h3 { font-size:15px; margin-bottom:8px; }
     button,input,select { font:inherit; }
     button { border:1px solid var(--line); background:#fff; border-radius:6px; padding:9px 12px; cursor:pointer; min-height:38px; }
     button.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
@@ -22,20 +25,23 @@
     input,select { border:1px solid var(--line); border-radius:6px; padding:9px 10px; width:100%; background:#fff; }
     label { display:grid; gap:6px; font-size:12px; color:#475467; font-weight:700; }
     main { padding:16px; max-width:1320px; margin:0 auto; }
-    .muted { color:var(--muted); } .small { font-size:12px; }
-    .header-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .muted { color:var(--muted); }
+    .small { font-size:12px; }
+    .header-actions,.toolbar,.actions { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+    .header-actions { align-items:center; justify-content:flex-end; }
     .lang { width:auto; min-width:132px; border-color:#344054; }
     .tabs { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px; }
     .tab { border-color:var(--line); color:#344054; }
     .tab.active { background:#e8efff; color:#1849b8; border-color:#b7c7ff; font-weight:800; }
-    .panel,.stat,.day { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:14px; }
+    .panel,.stat { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:14px; }
     .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
     .two { display:grid; grid-template-columns:1.2fr .8fr; gap:12px; }
-    .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
     .stat b { display:block; font-size:26px; margin-top:4px; }
     .badge { display:inline-flex; align-items:center; border-radius:999px; padding:3px 8px; font-size:12px; font-weight:800; }
-    .green { background:#e8f7ef; color:#106b49; } .amber { background:#fff4df; color:#99610f; }
-    .red { background:#ffe8e8; color:#a83333; } .blue { background:#e8efff; color:#1849b8; }
+    .green { background:#e8f7ef; color:#106b49; }
+    .amber { background:#fff4df; color:#99610f; }
+    .red { background:#ffe8e8; color:#a83333; }
+    .blue { background:#e8efff; color:#1849b8; }
     .gray { background:#eef2f6; color:#475467; }
     tr.pending-row { background:#fffaf0; }
     .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:8px; background:#fff; }
@@ -44,18 +50,29 @@
     th { background:#f8fafc; color:#475467; }
     th.sortable { cursor:pointer; user-select:none; }
     th.sortable:hover { color:#1849b8; background:#eef4ff; }
-    .actions { display:flex; gap:6px; flex-wrap:wrap; }
     .actions button { min-height:30px; padding:5px 8px; font-size:12px; }
-    .calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
-    .day { min-height:150px; margin:0; padding:10px; }
-    .day h3 { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:8px; }
-    .shift { border:1px solid var(--line); border-radius:6px; padding:7px; margin-bottom:6px; background:#fafcff; font-size:12px; }
+    .calendar-toolbar { display:flex; align-items:end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    .calendar-title { font-size:22px; font-weight:900; min-width:130px; }
+    .calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px; border:1px solid var(--line); background:var(--line); border-radius:8px; overflow:hidden; }
+    .weekday,.day { background:var(--card); margin:0; }
+    .weekday { padding:9px 10px; color:#475467; font-size:12px; font-weight:800; }
+    .day { min-height:132px; padding:9px; cursor:pointer; }
+    .day:hover { background:#f8fafc; }
+    .day.selected { outline:2px solid var(--blue); outline-offset:-2px; background:#eef4ff; }
+    .day.outside { background:#f8fafc; color:#98a2b3; }
+    .day h3 { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:8px; font-size:13px; }
+    .shift { border:1px solid var(--line); border-radius:6px; padding:6px; margin-bottom:5px; background:#fafcff; font-size:12px; line-height:1.35; overflow:hidden; text-overflow:ellipsis; }
+    .shift.missing { border-color:#ffb4b4; background:#fff1f1; color:#9f1f1f; font-weight:800; }
+    .more { color:#1849b8; font-size:12px; font-weight:800; }
+    .seg { display:flex; gap:6px; padding:3px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    .seg button { min-height:32px; padding:5px 10px; border-radius:6px; }
+    .seg button.active { background:#e8efff; border-color:#b7c7ff; color:#1849b8; font-weight:900; }
     .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--dark); color:#fff; padding:10px 14px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; max-width:92vw; z-index:20; }
     .toast.show { opacity:1; }
     .loading-bar { position:fixed; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,var(--blue),var(--green),var(--amber)); transform:scaleX(0); transform-origin:left; opacity:0; transition:opacity .15s; z-index:50; animation:loadingMove 1.1s ease-in-out infinite; }
     body.loading .loading-bar { opacity:1; }
     @keyframes loadingMove { 0%{transform:scaleX(.08)} 50%{transform:scaleX(.72)} 100%{transform:scaleX(1)} }
-    .hidden { display:none; }
+    .hidden { display:none !important; }
     @media (max-width:960px){ .grid,.two{grid-template-columns:1fr 1fr;} .calendar{grid-template-columns:1fr 1fr;} header{align-items:flex-start;} }
     @media (max-width:640px){ .grid,.two,.calendar{grid-template-columns:1fr;} header{display:block;} .header-actions{justify-content:flex-start; margin-top:12px;} }
   </style>
@@ -63,40 +80,40 @@
 <body>
   <header>
     <div>
-      <h1 data-i18n="title">主管排班后台</h1>
-      <p class="small" style="color:#cbd5e1;margin:0;" data-i18n="subtitle">飞书多维表格 + Vercel API + 机器人通知</p>
+      <h1 data-i18n="title">Manager Console</h1>
+      <p class="small" style="color:#cbd5e1;margin:0;" data-i18n="subtitle">Feishu Base + Vercel API + Bot Notification</p>
     </div>
     <div class="header-actions">
       <select id="lang" class="lang" onchange="setLang(this.value)" aria-label="Language">
-        <option value="zh">中文</option>
         <option value="en">English</option>
+        <option value="zh">中文</option>
         <option value="id">Bahasa</option>
       </select>
-      <button onclick="location.href='./admin-online.html'">管理员端</button>
-      <button onclick="location.href='./anchor-online.html'" data-i18n="openAnchor">打开主播入口</button>
+      <button onclick="location.href='./admin-online.html'" data-i18n="openAdmin">Admin</button>
+      <button onclick="location.href='./anchor-online.html'" data-i18n="openHost">Host Portal</button>
     </div>
   </header>
 
   <main>
     <section class="panel">
       <div class="toolbar">
-        <label><span data-i18n="startDate">开始日期</span><input id="startDate" type="date"></label>
-        <label><span data-i18n="days">生成天数</span><input id="days" type="number" min="1" max="31" value="7"></label>
-        <label><span data-i18n="keyword">搜索</span><input id="keyword" oninput="render()" placeholder="主播/品牌/直播间"></label>
-        <label><span data-i18n="status">状态</span><select id="statusFilter" onchange="render()"><option value="">All</option><option>草稿</option><option>已发布</option><option>已确认</option><option>缺人</option></select></label>
-        <button class="primary" onclick="generateSchedule()" data-i18n="generateButton">生成排班</button>
-        <button onclick="publishDrafts()" data-i18n="publishButton">发布草稿</button>
-        <button onclick="loadAll()" data-i18n="refreshButton">刷新数据</button>
+        <label><span data-i18n="startDate">Start date</span><input id="startDate" type="date"></label>
+        <label><span data-i18n="days">Days</span><input id="days" type="number" min="1" max="31" value="7"></label>
+        <label><span data-i18n="keyword">Search</span><input id="keyword" oninput="render()" placeholder="host / brand / room"></label>
+        <label><span data-i18n="status">Status</span><select id="statusFilter" onchange="render()"><option value="">All</option><option>草稿</option><option>已发布</option><option>已确认</option><option>缺人</option></select></label>
+        <button class="primary" onclick="generateSchedule()" data-i18n="generate">Generate</button>
+        <button onclick="publishDrafts()" data-i18n="publishDrafts">Publish drafts</button>
+        <button onclick="loadAll()" data-i18n="refresh">Refresh</button>
       </div>
     </section>
 
     <nav class="tabs">
-      <button class="tab active" data-tab="dashboard" onclick="setTab('dashboard')" data-i18n="tabDashboard">今日大盘</button>
-      <button class="tab" data-tab="calendar" onclick="setTab('calendar')" data-i18n="tabCalendar">日历</button>
-      <button class="tab" data-tab="schedules" onclick="setTab('schedules')" data-i18n="tabSchedules">排班</button>
-      <button class="tab" data-tab="swaps" onclick="setTab('swaps')" data-i18n="tabSwaps">换班池</button>
-      <button class="tab" data-tab="declarations" onclick="setTab('declarations')" data-i18n="tabDeclarations">申报</button>
-      <button class="tab" data-tab="anchors" onclick="setTab('anchors')" data-i18n="tabAnchors">主播</button>
+      <button class="tab active" data-tab="dashboard" onclick="setTab('dashboard')" data-i18n="dashboard">Dashboard</button>
+      <button class="tab" data-tab="calendar" onclick="setTab('calendar')" data-i18n="calendar">Calendar</button>
+      <button class="tab" data-tab="schedules" onclick="setTab('schedules')" data-i18n="schedules">Schedules</button>
+      <button class="tab" data-tab="swaps" onclick="setTab('swaps')" data-i18n="swaps">Swap Pool</button>
+      <button class="tab" data-tab="declarations" onclick="setTab('declarations')" data-i18n="requests">Requests</button>
+      <button class="tab" data-tab="anchors" onclick="setTab('anchors')" data-i18n="hosts">Hosts</button>
     </nav>
 
     <section id="dashboardView"></section>
@@ -107,7 +124,7 @@
     <section id="anchorsView" class="hidden"></section>
 
     <section class="panel">
-      <h2 data-i18n="healthTitle">系统状态</h2>
+      <h2 data-i18n="systemStatus">System Status</h2>
       <pre id="health" class="small muted"></pre>
     </section>
   </main>
@@ -117,57 +134,62 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const state = { anchors: [], brands: [], templates: [], declarations: [], schedules: [], workload: [], tab: "dashboard", loading: 0, scheduleSort: { key:"日期", dir:"desc" } };
-    const field = (r, name) => r.fields?.[name] ?? "";
-    function isActiveSchedule(r) { const status = field(r, "\u72b6\u6001"); return status !== "\u5386\u53f2" && status !== "\u5df2\u53d6\u6d88"; }
-    const today = () => new Date().toISOString().slice(0, 10);
-    const i18n = {
-      zh: {
-        title:"主管排班后台", subtitle:"飞书多维表格 + Vercel API + 机器人通知", openAnchor:"打开主播入口",
-        startDate:"开始日期", days:"生成天数", keyword:"搜索", status:"状态", generateButton:"生成排班", publishButton:"发布草稿", refreshButton:"刷新数据",
-        tabDashboard:"今日大盘", tabCalendar:"日历", tabSchedules:"排班", tabSwaps:"换班池", tabDeclarations:"申报", tabAnchors:"主播",
-        healthTitle:"系统状态", empty:"暂无数据", generating:"正在生成...", publishing:"正在发布...", refreshed:"已刷新", published:"已发布草稿", approved:"已同意", rejected:"已拒绝", confirmed:"已确认",
-        stats:["主播","品牌/直播间","待处理申报","排班结果"], risk:"风险班次", swapHint:"主播互换班次后，系统会自动改写两条排班并通知主管。", dashboardHint:"主管看全盘、生成排班、发布班表、处理申报。",
-        autoPanel:"自动排班", manualPanel:"手动指定排班", oneDay:"只排这一天", oneWeek:"排 1 周", twoWeeks:"排 2 周", monthSchedule:"排整月", workload:"月度工时", weeklyAudit:"生成每周留痕", manualCreate:"添加手动排班", anchor:"主播", brand:"品牌", room:"直播间", shift:"班次", startTime:"开始时间", endTime:"结束时间", note:"备注", created:"已添加手动排班",
-        columns:{schedule:["日期","班次","时间","主播","品牌","直播间","状态","备注","操作"], declaration:["主播","类型","日期","时间","原因","状态","操作"], anchor:["主播ID","姓名","语言","国家","时区","类目","等级","状态"]},
-        actions:{publish:"发布", confirm:"确认", approve:"同意", reject:"拒绝", forceComplete:"主管完成换班"}, generated:(count,missing)=>`已生成 ${count} 条，缺人 ${missing} 条`
-      },
-      en: {
-        title:"Manager Console", subtitle:"Feishu Base + Vercel API + Bot Notification", openAnchor:"Open anchor portal",
-        startDate:"Start date", days:"Days", keyword:"Search", status:"Status", generateButton:"Generate", publishButton:"Publish drafts", refreshButton:"Refresh",
-        tabDashboard:"Dashboard", tabCalendar:"Calendar", tabSchedules:"Schedules", tabSwaps:"Swap pool", tabDeclarations:"Requests", tabAnchors:"Anchors",
-        healthTitle:"System Status", empty:"No data", generating:"Generating...", publishing:"Publishing...", refreshed:"Refreshed", published:"Drafts published", approved:"Approved", rejected:"Rejected", confirmed:"Confirmed",
-        stats:["Anchors","Brands / rooms","Pending requests","Schedules"], risk:"Risk shifts", swapHint:"When anchors complete a swap, the system rewrites both schedules and notifies the manager.", dashboardHint:"Review workload, generate schedules, publish shifts, and process requests.",
-        autoPanel:"Auto scheduling", manualPanel:"Manual assignment", oneDay:"Only this day", oneWeek:"1 week", twoWeeks:"2 weeks", monthSchedule:"Full month", workload:"Monthly workload", weeklyAudit:"Generate weekly audit", manualCreate:"Add manual shift", anchor:"Anchor", brand:"Brand", room:"Room", shift:"Shift", startTime:"Start time", endTime:"End time", note:"Note", created:"Manual shift added",
-        columns:{schedule:["Date","Shift","Time","Anchor","Brand","Room","Status","Notes","Actions"], declaration:["Anchor","Type","Date","Time","Reason","Status","Actions"], anchor:["ID","Name","Language","Country","TZ","Category","Level","Status"]},
-        actions:{publish:"Publish", confirm:"Confirm", approve:"Approve", reject:"Reject", forceComplete:"Complete swap"}, generated:(count,missing)=>`Generated ${count} rows, missing ${missing}`
-      },
-      id: {
-        title:"Konsol Supervisor", subtitle:"Feishu Base + Vercel API + Notifikasi Bot", openAnchor:"Buka portal anchor",
-        startDate:"Tanggal mulai", days:"Hari", keyword:"Cari", status:"Status", generateButton:"Buat jadwal", publishButton:"Publikasikan draft", refreshButton:"Refresh",
-        tabDashboard:"Dashboard", tabCalendar:"Kalender", tabSchedules:"Jadwal", tabSwaps:"Pool tukar", tabDeclarations:"Permintaan", tabAnchors:"Anchor",
-        healthTitle:"Status Sistem", empty:"Belum ada data", generating:"Membuat jadwal...", publishing:"Mempublikasikan...", refreshed:"Data diperbarui", published:"Draft dipublikasikan", approved:"Disetujui", rejected:"Ditolak", confirmed:"Dikonfirmasi",
-        stats:["Anchor","Brand / room","Permintaan pending","Jadwal"], risk:"Shift berisiko", swapHint:"Saat swap selesai, sistem memperbarui dua jadwal dan memberi tahu supervisor.", dashboardHint:"Pantau jadwal, buat jadwal, publikasikan shift, dan proses permintaan.",
-        autoPanel:"Jadwal otomatis", manualPanel:"Assign manual", oneDay:"Hari ini saja", oneWeek:"1 minggu", twoWeeks:"2 minggu", monthSchedule:"Sebulan", workload:"Jam bulanan", weeklyAudit:"Buat audit mingguan", manualCreate:"Tambah shift manual", anchor:"Anchor", brand:"Brand", room:"Room", shift:"Shift", startTime:"Mulai", endTime:"Selesai", note:"Catatan", created:"Shift manual ditambahkan",
-        columns:{schedule:["Tanggal","Shift","Waktu","Anchor","Brand","Room","Status","Catatan","Aksi"], declaration:["Anchor","Tipe","Tanggal","Waktu","Alasan","Status","Aksi"], anchor:["ID","Nama","Bahasa","Negara","TZ","Kategori","Level","Status"]},
-        actions:{publish:"Publish", confirm:"Konfirmasi", approve:"Setujui", reject:"Tolak", forceComplete:"Selesaikan swap"}, generated:(count,missing)=>`Berhasil membuat ${count} baris, kekurangan ${missing}`
-      }
+    const F = {
+      schedule:{ date:"日期", shift:"班次", start:"开始时间", end:"结束时间", host:"主播姓名", brand:"品牌", room:"直播间", status:"状态", note:"备注" },
+      declaration:{ host:"主播姓名", type:"申报类型", date:"日期", start:"开始时间", end:"结束时间", original:"原班次", reason:"原因", status:"状态" },
+      host:{ id:"主播ID", name:"姓名", english:"英文名", language:"语言", country:"国家", timezone:"时区", category:"擅长类目", level:"等级", target:"月目标工时", maxDaily:"每日最多场次", status:"状态" },
+      brand:{ name:"品牌名", category:"类目", language:"需要语言", room:"直播间名称", priority:"优先级", status:"状态" },
+      template:{ name:"班次名称", start:"开始时间", end:"结束时间", duration:"默认时长", status:"状态" }
     };
-    let currentLang = localStorage.getItem("uiLang") || "zh";
+    const TEXT = {
+      en:{ title:"Manager Console", subtitle:"Feishu Base + Vercel API + Bot Notification", openAdmin:"Admin", openHost:"Host Portal", startDate:"Start date", days:"Days", keyword:"Search", status:"Status", generate:"Generate", publishDrafts:"Publish drafts", refresh:"Refresh", dashboard:"Dashboard", calendar:"Calendar", schedules:"Schedules", swaps:"Swap Pool", requests:"Requests", hosts:"Hosts", systemStatus:"System Status", empty:"No data", dashboardHint:"Review workload, generate schedules, publish shifts, and process requests.", risk:"Risk shifts", auto:"Auto scheduling", manual:"Manual assignment", workload:"Monthly workload", audit:"Generate weekly audit", cleanup:"Clean duplicate schedules", addManual:"Add manual shift", oneDay:"Only this day", oneWeek:"1 week", twoWeeks:"2 weeks", fullMonth:"Full month", room:"Room", host:"Host", total:"All", previous:"Previous", next:"Next", today:"Today", details:"Details", allRooms:"All rooms", allHosts:"All hosts", notes:"Notes" },
+      zh:{ title:"主管排班后台", subtitle:"飞书多维表格 + Vercel API + 机器人通知", openAdmin:"管理员端", openHost:"主播入口", startDate:"开始日期", days:"生成天数", keyword:"搜索", status:"状态", generate:"生成排班", publishDrafts:"发布草稿", refresh:"刷新", dashboard:"今日大盘", calendar:"日历", schedules:"排班", swaps:"换班池", requests:"申报", hosts:"主播", systemStatus:"系统状态", empty:"暂无数据", dashboardHint:"主管看全盘、生成排班、发布班表、处理申报。", risk:"风险班次", auto:"自动排班", manual:"手动指定排班", workload:"月度工时", audit:"生成每周留痕", cleanup:"清理重复排班", addManual:"添加手动排班", oneDay:"只排这一天", oneWeek:"排 1 周", twoWeeks:"排 2 周", fullMonth:"排整月", room:"直播间", host:"主播", total:"总盘", previous:"上一月", next:"下一月", today:"今天", details:"明细", allRooms:"全部直播间", allHosts:"全部主播", notes:"备注" },
+      id:{ title:"Konsol Manager", subtitle:"Feishu Base + Vercel API + Notifikasi Bot", openAdmin:"Admin", openHost:"Portal Host", startDate:"Tanggal mulai", days:"Hari", keyword:"Cari", status:"Status", generate:"Buat jadwal", publishDrafts:"Publish draft", refresh:"Refresh", dashboard:"Dashboard", calendar:"Kalender", schedules:"Jadwal", swaps:"Pool Tukar", requests:"Permintaan", hosts:"Host", systemStatus:"Status Sistem", empty:"Belum ada data", dashboardHint:"Pantau jadwal, buat jadwal, publish shift, dan proses permintaan.", risk:"Shift berisiko", auto:"Jadwal otomatis", manual:"Assign manual", workload:"Jam bulanan", audit:"Buat audit mingguan", cleanup:"Bersihkan duplikat", addManual:"Tambah shift manual", oneDay:"Hari ini saja", oneWeek:"1 minggu", twoWeeks:"2 minggu", fullMonth:"Sebulan", room:"Room", host:"Host", total:"Semua", previous:"Sebelumnya", next:"Berikutnya", today:"Hari ini", details:"Detail", allRooms:"Semua room", allHosts:"Semua host", notes:"Catatan" }
+    };
+    const STATUS_CLASS = { "待处理":"amber", "草稿":"gray", "已发布":"blue", "已确认":"green", "已同意":"green", "已拒绝":"red", "缺人":"red", "停用":"red", "正常":"green", "历史":"gray", "已取消":"gray" };
+    const STATUS_RANK = { "待处理":0, "缺人":1, "草稿":2, "已发布":3, "已确认":4, "已同意":5, "已拒绝":6, "停用":7, "正常":8 };
+    const INACTIVE_SCHEDULE = new Set(["历史", "已取消"]);
+    const state = {
+      anchors:[], brands:[], templates:[], declarations:[], schedules:[], workload:[],
+      tab:"dashboard", loading:0, scheduleSort:{ key:F.schedule.date, dir:"desc" },
+      calendar:{ month:new Date().toISOString().slice(0, 7), view:"total", room:"", host:"", selectedDate:new Date().toISOString().slice(0, 10) }
+    };
+    let currentLang = localStorage.getItem("uiLang") || "en";
 
-    $("startDate").value = today();
-    function t() { return i18n[currentLang]; }
-    function setLang(lang) {
-      currentLang = lang;
-      localStorage.setItem("uiLang", lang);
-      $("lang").value = lang;
-      document.documentElement.lang = lang === "id" ? "id" : lang === "en" ? "en" : "zh-CN";
-      document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t()[el.dataset.i18n]; });
-      render();
+    function text() { return TEXT[currentLang] || TEXT.en; }
+    function field(record, name) {
+      const value = record && record.fields ? record.fields[name] : "";
+      if (Array.isArray(value)) return value.map((item) => item.text || item.name || item).join(",");
+      if (value && typeof value === "object") return value.text || value.name || JSON.stringify(value);
+      return value == null ? "" : String(value);
     }
-    function toast(text) {
-      const el = $("toast"); el.textContent = text; el.classList.add("show");
-      clearTimeout(window.__toast); window.__toast = setTimeout(() => el.classList.remove("show"), 1800);
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+    }
+    function jsArg(value) {
+      return escapeHtml(JSON.stringify(String(value || "")));
+    }
+    function unique(list) { return [...new Set(list.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), "zh-Hans-CN", { numeric:true })); }
+    function today() { return new Date().toISOString().slice(0, 10); }
+    function localDate(y, m, d) {
+      const date = new Date(y, m, d);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+    function monthParts(month) { const [year, mon] = month.split("-").map(Number); return { year, monthIndex:mon - 1 }; }
+    function isActiveSchedule(record) { return !INACTIVE_SCHEDULE.has(field(record, F.schedule.status)); }
+    function isMissingSchedule(record) { return !field(record, F.schedule.host) || field(record, F.schedule.status) === "缺人"; }
+    function scheduleTime(record) { return `${field(record, F.schedule.start)}-${field(record, F.schedule.end)}`; }
+    function scheduleLabel(record) {
+      if (!record) return "-";
+      return `${field(record, F.schedule.date)} ${field(record, F.schedule.shift)} ${scheduleTime(record)} · ${field(record, F.schedule.host) || "-"} · ${field(record, F.schedule.brand)}`;
+    }
+    function badge(status) { return `<span class="badge ${STATUS_CLASS[status] || "gray"}">${escapeHtml(status || "-")}</span>`; }
+    function toast(message) {
+      const el = $("toast");
+      el.textContent = message;
+      el.classList.add("show");
+      clearTimeout(window.__toast);
+      window.__toast = setTimeout(() => el.classList.remove("show"), 1800);
     }
     function setLoading(active) {
       state.loading += active ? 1 : -1;
@@ -185,399 +207,374 @@
         setLoading(false);
       }
     }
-    async function updateRecord(type, recordId, fields, notifyText) {
-      return api("/api/update", {
-        method:"POST",
-        headers:{ "content-type":"application/json" },
-        body:JSON.stringify({ type, recordId, fields, notifyText })
-      });
+    function post(path, body) {
+      return api(path, { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify(body) });
     }
+
+    function setLang(lang) {
+      currentLang = TEXT[lang] ? lang : "en";
+      localStorage.setItem("uiLang", currentLang);
+      $("lang").value = currentLang;
+      document.documentElement.lang = currentLang === "zh" ? "zh-CN" : currentLang;
+      document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = text()[el.dataset.i18n] || ""; });
+      document.title = text().title;
+      render();
+    }
+    function setTab(tab) {
+      state.tab = tab;
+      document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
+      ["dashboard","calendar","schedules","swaps","declarations","anchors"].forEach((name) => $(`${name}View`).classList.toggle("hidden", name !== tab));
+      render();
+    }
+
     async function loadAll() {
       try {
         const data = await api("/api/bootstrap");
-        state.anchors = data.records.anchors;
-        state.brands = data.records.brands;
-        state.templates = data.records.templates;
-        state.declarations = data.records.declarations;
-        state.schedules = data.records.schedules.filter(isActiveSchedule);
-        $("health").textContent = JSON.stringify(data.env, null, 2);
+        state.anchors = data.records.anchors || [];
+        state.brands = data.records.brands || [];
+        state.templates = data.records.templates || [];
+        state.declarations = data.records.declarations || [];
+        state.schedules = (data.records.schedules || []).filter(isActiveSchedule);
+        $("health").textContent = JSON.stringify(data.env || {}, null, 2);
         render();
-        toast(t().refreshed);
-      } catch (e) {
-        toast(e.message);
-        $("health").textContent = e.stack || e.message;
+        toast(text().refresh);
+      } catch (error) {
+        toast(error.message);
+        $("health").textContent = error.stack || error.message;
       }
     }
     async function refreshSchedulesOnly() {
       const data = await api("/api/data?type=schedules");
-      state.schedules = data.records.filter(isActiveSchedule);
+      state.schedules = (data.records || []).filter(isActiveSchedule);
       render();
     }
+    async function updateRecord(type, recordId, fields, notifyText) {
+      return post("/api/update", { type, recordId, fields, notifyText });
+    }
+
     async function generateSchedule() {
       try {
-        toast(t().generating);
-        const data = await api("/api/generate", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ startDate:$("startDate").value, days:$("days").value })
-        });
-        toast(t().generated(data.count, data.missing));
+        const data = await post("/api/generate", { startDate:$("startDate").value, days:$("days").value });
+        toast(`Generated ${data.count || data.created || 0}; missing ${data.missing || 0}`);
         await refreshSchedulesOnly();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
     }
-    function generateQuick(days) {
-      $("days").value = days;
-      generateSchedule();
-    }
+    function generateQuick(days) { $("days").value = days; generateSchedule(); }
     async function generateMonthSchedule() {
       try {
-        const month = ($("startDate").value || today()).slice(0, 7);
-        toast(t().generating);
-        const data = await api("/api/generate", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ month })
-        });
-        toast(t().generated(data.count, data.missing));
+        const data = await post("/api/generate", { month:($("startDate").value || today()).slice(0, 7) });
+        toast(`Generated ${data.count || data.created || 0}; missing ${data.missing || 0}`);
         await refreshSchedulesOnly();
         await loadWorkload();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
     }
     async function cleanupSchedules() {
       try {
-        toast("\u6b63\u5728\u6e05\u7406\u91cd\u590d\u6392\u73ed...");
-        const data = await api("/api/generate", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ action:"cleanup-duplicates" })
-        });
-        toast(`\u5df2\u6807\u8bb0 ${data.markedHistory || 0} \u6761\u65e7\u6392\u73ed\u4e3a\u5386\u53f2`);
+        const data = await post("/api/generate", { action:"cleanup-duplicates" });
+        toast(`Marked ${data.markedHistory || 0} duplicate schedules as history`);
         await refreshSchedulesOnly();
-        await loadWorkload();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
     }
     async function loadWorkload() {
       try {
         const month = ($("startDate").value || today()).slice(0, 7);
         const data = await api(`/api/workload?month=${month}`);
-        state.workload = data.records;
-        if (state.tab === "dashboard" || state.tab === "schedules") render();
-      } catch (e) { toast(e.message); }
+        state.workload = data.records || [];
+        render();
+      } catch (error) { toast(error.message); }
     }
     async function generateWeeklyAudit() {
       try {
         const data = await api(`/api/audit-weekly?from=${$("startDate").value || today()}`);
-        toast(`已生成周留痕：${data.count} 条`);
-      } catch (e) { toast(e.message); }
+        toast(`Audit rows: ${data.count || 0}`);
+      } catch (error) { toast(error.message); }
     }
     async function createManualSchedule() {
       try {
-        const template = state.templates.find((item) => field(item, "班次名称") === $("manualShift").value) || {};
-        const brand = state.brands.find((item) => field(item, "品牌名") === $("manualBrand").value) || {};
-        const body = {
+        const template = state.templates.find((item) => field(item, F.template.name) === $("manualShift").value) || {};
+        const brand = state.brands.find((item) => field(item, F.brand.name) === $("manualBrand").value) || {};
+        await post("/api/manual-schedule", {
           date:$("manualDate").value,
           shift:$("manualShift").value,
-          startTime:$("manualStart").value || field(template, "开始时间"),
-          endTime:$("manualEnd").value || field(template, "结束时间"),
-          anchorName:$("manualAnchor").value,
+          startTime:$("manualStart").value || field(template, F.template.start),
+          endTime:$("manualEnd").value || field(template, F.template.end),
+          anchorName:$("manualHost").value,
           brand:$("manualBrand").value,
-          room:$("manualRoom").value || field(brand, "直播间名称"),
+          room:$("manualRoom").value || field(brand, F.brand.room),
           status:$("manualStatus").value,
           note:$("manualNote").value
-        };
-        await api("/api/manual-schedule", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify(body)
         });
-        toast(t().created);
+        toast(text().addManual);
         await refreshSchedulesOnly();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
     }
     async function publishDrafts() {
-      const drafts = state.schedules.filter((r) => field(r, "状态") === "草稿");
-      if (!drafts.length) return toast(t().empty);
+      const drafts = state.schedules.filter((record) => field(record, F.schedule.status) === "草稿");
+      if (!drafts.length) return toast(text().empty);
       try {
-        toast(t().publishing);
-        await api("/api/update", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({
-            type:"schedules",
-            records:drafts.map((r) => ({ record_id:r.record_id, fields:{ "状态":"已发布" } })),
-            notifyText:`已发布 ${drafts.length} 条排班。`
-          })
+        await post("/api/update", {
+          type:"schedules",
+          records:drafts.map((record) => ({ record_id:record.record_id, fields:{ [F.schedule.status]:"已发布" } })),
+          notifyText:`已发布 ${drafts.length} 条排班。`
         });
-        drafts.forEach((record) => { record.fields["状态"] = "已发布"; });
-        toast(t().published);
+        drafts.forEach((record) => { record.fields[F.schedule.status] = "已发布"; });
+        toast(`Published ${drafts.length}`);
         render();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
     }
     async function setScheduleStatus(recordId, status) {
       try {
-        await updateRecord("schedules", recordId, { "状态":status }, `排班状态更新为：${status}`);
+        await updateRecord("schedules", recordId, { [F.schedule.status]:status }, `排班状态更新为：${status}`);
         const record = state.schedules.find((item) => item.record_id === recordId);
-        if (record) record.fields["状态"] = status;
-        toast(status === "已确认" ? t().confirmed : t().published);
+        if (record) record.fields[F.schedule.status] = status;
         render();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
     }
     async function setDeclarationStatus(recordId, status) {
       try {
-        await updateRecord("declarations", recordId, { "状态":status }, `主播申报已${status}`);
+        await updateRecord("declarations", recordId, { [F.declaration.status]:status }, `主播申报已${status}`);
         const record = state.declarations.find((item) => item.record_id === recordId);
-        if (record) record.fields["状态"] = status;
-        toast(status === "已同意" ? t().approved : t().rejected);
+        if (record) record.fields[F.declaration.status] = status;
         render();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
     }
-    function setTab(tab) {
-      state.tab = tab;
-      document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
-      ["dashboard","calendar","schedules","swaps","declarations","anchors"].forEach((name) => {
-        $(`${name}View`).classList.toggle("hidden", name !== tab);
-      });
-      render();
-    }
-    function parseSwapMeta(text) {
-      if (!text || !text.startsWith("SWAP_REQUEST|")) return null;
-      return Object.fromEntries(text.split("|").slice(1).map((part) => {
-        const i = part.indexOf("=");
-        return i > -1 ? [part.slice(0, i), decodeURIComponent(part.slice(i + 1))] : [part, ""];
-      }));
-    }
-    function scheduleLabel(r) {
-      if (!r) return "-";
-      return `${field(r,"日期")} ${field(r,"班次")} ${field(r,"开始时间")}-${field(r,"结束时间")} · ${field(r,"主播姓名")} · ${field(r,"品牌")}`;
-    }
-    function jsArg(value) {
-      return JSON.stringify(String(value || ""));
-    }
-    async function completeSwap(recordId, anchorName) {
+    async function rejectSwap(recordId) {
       try {
-        const declaration = state.declarations.find((item) => item.record_id === recordId);
-        const meta = declaration ? parseSwapMeta(field(declaration, "原因")) : null;
-        const from = meta ? state.schedules.find((item) => item.record_id === meta.from) : null;
-        const to = meta ? state.schedules.find((item) => item.record_id === meta.to) : null;
-        const fromAnchor = declaration ? field(declaration, "主播姓名") : "";
-        const toAnchor = anchorName || (to ? field(to, "主播姓名") : "");
-        await api("/api/swap", {
-          method:"POST",
-          headers:{ "content-type":"application/json" },
-          body:JSON.stringify({ action:"accept", declarationRecordId:recordId, anchorName })
-        });
-        if (declaration) declaration.fields["状态"] = "已同意";
-        if (from && to) {
-          from.fields["主播姓名"] = toAnchor;
-          from.fields["状态"] = "已发布";
-          from.fields["备注"] = `已与 ${fromAnchor} 完成换班`;
-          to.fields["主播姓名"] = fromAnchor;
-          to.fields["状态"] = "已发布";
-          to.fields["备注"] = `已与 ${toAnchor} 完成换班`;
-        }
-        toast(t().approved);
+        await post("/api/swap", { action:"reject", declarationRecordId:recordId });
+        const record = state.declarations.find((item) => item.record_id === recordId);
+        if (record) record.fields[F.declaration.status] = "已拒绝";
         render();
-      } catch (e) { toast(e.message); }
+      } catch (error) { toast(error.message); }
+    }
+    async function completeSwap(recordId, hostName) {
+      try {
+        await post("/api/swap", { action:"accept", declarationRecordId:recordId, anchorName:hostName });
+        toast("Swap completed");
+        await loadAll();
+      } catch (error) { toast(error.message); }
+    }
+
+    function activeHosts() { return state.anchors.filter((item) => field(item, F.host.status) !== "停用"); }
+    function activeBrands() { return state.brands.filter((item) => field(item, F.brand.status) !== "停用"); }
+    function activeTemplates() { return state.templates.filter((item) => field(item, F.template.status) !== "停用"); }
+    function statusRank(status) { return STATUS_RANK[status] ?? 9; }
+    function byStatusThenDate(a, b) {
+      const rank = statusRank(field(a, F.declaration.status) || field(a, F.schedule.status)) - statusRank(field(b, F.declaration.status) || field(b, F.schedule.status));
+      if (rank) return rank;
+      return `${field(b, F.schedule.date) || field(b, F.declaration.date)} ${field(b, F.schedule.start) || field(b, F.declaration.start)}`.localeCompare(`${field(a, F.schedule.date) || field(a, F.declaration.date)} ${field(a, F.schedule.start) || field(a, F.declaration.start)}`);
     }
     function filteredSchedules() {
       const term = $("keyword").value.trim().toLowerCase();
       const status = $("statusFilter").value;
-      return state.schedules.filter((r) => {
-        const haystack = ["主播姓名","品牌","直播间","班次","日期"].map((key) => field(r, key)).join(" ").toLowerCase();
-        return (!term || haystack.includes(term)) && (!status || field(r, "状态") === status);
+      return state.schedules.filter((record) => {
+        const haystack = [F.schedule.host, F.schedule.brand, F.schedule.room, F.schedule.shift, F.schedule.date].map((key) => field(record, key)).join(" ").toLowerCase();
+        return (!term || haystack.includes(term)) && (!status || field(record, F.schedule.status) === status);
       });
     }
     function setScheduleSort(key) {
-      if (state.scheduleSort.key === key) {
-        state.scheduleSort.dir = state.scheduleSort.dir === "asc" ? "desc" : "asc";
-      } else {
-        state.scheduleSort = { key, dir:"asc" };
-      }
+      state.scheduleSort = state.scheduleSort.key === key ? { key, dir:state.scheduleSort.dir === "asc" ? "desc" : "asc" } : { key, dir:"asc" };
       renderSchedules();
     }
-    function sortValue(record, key) {
-      if (key === "时间") return `${field(record, "开始时间")}-${field(record, "结束时间")}`;
-      return field(record, key);
-    }
+    function sortValue(record, key) { return key === "时间" ? scheduleTime(record) : field(record, key); }
     function sortSchedules(records) {
       const { key, dir } = state.scheduleSort;
       const factor = dir === "asc" ? 1 : -1;
       return records.slice().sort((a, b) => {
-        const av = sortValue(a, key);
-        const bv = sortValue(b, key);
-        const result = String(av).localeCompare(String(bv), "zh-Hans-CN", { numeric:true });
-        if (result) return result * factor;
-        return byStatusThenDate(a, b);
+        const result = String(sortValue(a, key)).localeCompare(String(sortValue(b, key)), "zh-Hans-CN", { numeric:true });
+        return result ? result * factor : byStatusThenDate(a, b);
       });
     }
+
+    function renderDashboard() {
+      const pending = state.declarations.filter((record) => field(record, F.declaration.status) === "待处理");
+      const risk = state.schedules.filter(isMissingSchedule);
+      const todayRows = state.schedules.filter((record) => field(record, F.schedule.date) === today()).slice(0, 8);
+      $("dashboardView").innerHTML = `
+        <section class="grid">
+          <div class="stat"><span class="muted">${text().hosts}</span><b>${state.anchors.length}</b></div>
+          <div class="stat"><span class="muted">Brands / rooms</span><b>${state.brands.length}</b></div>
+          <div class="stat"><span class="muted">Pending</span><b>${pending.length}</b></div>
+          <div class="stat"><span class="muted">${text().schedules}</span><b>${state.schedules.length}</b></div>
+        </section>
+        <section class="two">
+          <div class="panel"><h2>${text().dashboard}</h2><p class="muted">${text().dashboardHint}</p>${scheduleRows(todayRows)}</div>
+          <div class="panel"><h2>${text().risk}</h2>${scheduleRows(risk.slice(0, 8))}</div>
+        </section>`;
+    }
+    function setCalendarMonth(delta) {
+      const { year, monthIndex } = monthParts(state.calendar.month);
+      const date = new Date(year, monthIndex + delta, 1);
+      state.calendar.month = localDate(date.getFullYear(), date.getMonth(), 1).slice(0, 7);
+      if (!state.calendar.selectedDate.startsWith(state.calendar.month)) state.calendar.selectedDate = `${state.calendar.month}-01`;
+      renderCalendar();
+    }
+    function setCalendarToday() { state.calendar.month = today().slice(0, 7); state.calendar.selectedDate = today(); renderCalendar(); }
+    function setCalendarView(view) { state.calendar.view = view; renderCalendar(); }
+    function setCalendarFilter(key, value) { state.calendar[key] = value; renderCalendar(); }
+    function selectCalendarDate(date) { state.calendar.selectedDate = date; renderCalendar(); }
+    function calendarRows() {
+      return state.schedules.filter((record) => {
+        if (!field(record, F.schedule.date).startsWith(state.calendar.month)) return false;
+        if (state.calendar.view === "room" && state.calendar.room && field(record, F.schedule.room) !== state.calendar.room) return false;
+        if (state.calendar.view === "host" && state.calendar.host && field(record, F.schedule.host) !== state.calendar.host) return false;
+        return true;
+      }).sort((a, b) => `${field(a, F.schedule.date)} ${field(a, F.schedule.start)}`.localeCompare(`${field(b, F.schedule.date)} ${field(b, F.schedule.start)}`));
+    }
+    function renderCalendar() {
+      const { year, monthIndex } = monthParts(state.calendar.month);
+      const first = new Date(year, monthIndex, 1);
+      const byDate = calendarRows().reduce((map, record) => {
+        const date = field(record, F.schedule.date);
+        (map[date] ||= []).push(record);
+        return map;
+      }, {});
+      const rooms = unique(state.schedules.map((record) => field(record, F.schedule.room)));
+      const hosts = unique(state.schedules.map((record) => field(record, F.schedule.host)));
+      const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((day) => `<div class="weekday">${day}</div>`).join("");
+      const cells = [];
+      for (let i = 0; i < 42; i += 1) {
+        const dateObject = new Date(year, monthIndex, i - first.getDay() + 1);
+        const date = localDate(dateObject.getFullYear(), dateObject.getMonth(), dateObject.getDate());
+        const rows = byDate[date] || [];
+        const visible = rows.slice(0, 3);
+        const more = rows.length - visible.length;
+        cells.push(`<div class="day ${dateObject.getMonth() !== monthIndex ? "outside" : ""} ${date === state.calendar.selectedDate ? "selected" : ""}" onclick="selectCalendarDate('${date}')">
+          <h3><span>${dateObject.getDate()}</span>${rows.length ? `<span class="badge ${rows.some(isMissingSchedule) ? "red" : "blue"}">${rows.length}</span>` : ""}</h3>
+          ${visible.map((record) => `<div class="shift ${isMissingSchedule(record) ? "missing" : ""}" title="${escapeHtml(scheduleLabel(record))}">
+            <b>${escapeHtml(scheduleTime(record))}</b> ${escapeHtml(field(record, F.schedule.host) || "缺人")}<br>${escapeHtml(field(record, F.schedule.room) || field(record, F.schedule.brand))}
+          </div>`).join("")}
+          ${more > 0 ? `<div class="more">还有 ${more} 项</div>` : ""}
+        </div>`);
+      }
+      const selectedRows = calendarRows().filter((record) => field(record, F.schedule.date) === state.calendar.selectedDate);
+      $("calendarView").innerHTML = `<section class="panel">
+        <div class="calendar-toolbar">
+          <div class="toolbar">
+            <button onclick="setCalendarMonth(-1)">${text().previous}</button>
+            <button onclick="setCalendarToday()">${text().today}</button>
+            <button onclick="setCalendarMonth(1)">${text().next}</button>
+            <div class="calendar-title">${state.calendar.month}</div>
+          </div>
+          <div class="toolbar">
+            <div class="seg">
+              <button class="${state.calendar.view === "total" ? "active" : ""}" onclick="setCalendarView('total')">${text().total}</button>
+              <button class="${state.calendar.view === "room" ? "active" : ""}" onclick="setCalendarView('room')">${text().room}</button>
+              <button class="${state.calendar.view === "host" ? "active" : ""}" onclick="setCalendarView('host')">${text().host}</button>
+            </div>
+            <label class="${state.calendar.view === "room" ? "" : "hidden"}">${text().room}<select onchange="setCalendarFilter('room', this.value)"><option value="">${text().allRooms}</option>${rooms.map((room) => `<option value="${escapeHtml(room)}" ${room === state.calendar.room ? "selected" : ""}>${escapeHtml(room)}</option>`).join("")}</select></label>
+            <label class="${state.calendar.view === "host" ? "" : "hidden"}">${text().host}<select onchange="setCalendarFilter('host', this.value)"><option value="">${text().allHosts}</option>${hosts.map((host) => `<option value="${escapeHtml(host)}" ${host === state.calendar.host ? "selected" : ""}>${escapeHtml(host)}</option>`).join("")}</select></label>
+          </div>
+        </div>
+        <div class="calendar">${weekdays}${cells.join("")}</div>
+      </section>
+      <section class="panel"><h2>${state.calendar.selectedDate} ${text().details}</h2>${scheduleRows(selectedRows)}</section>`;
+    }
+    function renderSchedules() {
+      const hosts = activeHosts();
+      const brands = activeBrands();
+      const templates = activeTemplates();
+      const firstTemplate = templates[0] || {};
+      const firstBrand = brands[0] || {};
+      $("schedulesView").innerHTML = `<section class="panel"><h2>${text().auto}</h2><div class="toolbar">
+        <button class="primary" onclick="generateQuick(1)">${text().oneDay}</button>
+        <button onclick="generateQuick(7)">${text().oneWeek}</button>
+        <button onclick="generateQuick(14)">${text().twoWeeks}</button>
+        <button onclick="generateMonthSchedule()">${text().fullMonth}</button>
+        <button onclick="loadWorkload()">${text().workload}</button>
+        <button onclick="generateWeeklyAudit()">${text().audit}</button>
+        <button onclick="cleanupSchedules()">${text().cleanup}</button>
+      </div></section>
+      <section class="panel"><h2>${text().manual}</h2><div class="toolbar">
+        <label>${text().startDate}<input id="manualDate" type="date" value="${$("startDate").value || today()}"></label>
+        <label>Shift<select id="manualShift" onchange="syncManualTemplate()">${templates.map((item) => `<option value="${escapeHtml(field(item, F.template.name))}">${escapeHtml(field(item, F.template.name))} · ${escapeHtml(field(item, F.template.start))}-${escapeHtml(field(item, F.template.end))}</option>`).join("")}</select></label>
+        <label>Start<input id="manualStart" type="time" value="${escapeHtml(field(firstTemplate, F.template.start) || "09:00")}"></label>
+        <label>End<input id="manualEnd" type="time" value="${escapeHtml(field(firstTemplate, F.template.end) || "12:00")}"></label>
+        <label>${text().host}<select id="manualHost">${hosts.map((item) => `<option value="${escapeHtml(field(item, F.host.name))}">${escapeHtml(field(item, F.host.name))} · ${escapeHtml(field(item, F.host.language))} · ${escapeHtml(field(item, F.host.category))}</option>`).join("")}</select></label>
+        <label>Brand<select id="manualBrand" onchange="syncManualBrand()">${brands.map((item) => `<option value="${escapeHtml(field(item, F.brand.name))}">${escapeHtml(field(item, F.brand.name))} · ${escapeHtml(field(item, F.brand.room))}</option>`).join("")}</select></label>
+        <label>${text().room}<input id="manualRoom" value="${escapeHtml(field(firstBrand, F.brand.room))}"></label>
+        <label>${text().status}<select id="manualStatus"><option>草稿</option><option>已发布</option><option>已确认</option></select></label>
+        <label>${text().notes}<input id="manualNote" value="主管手动指定"></label>
+        <button class="primary" onclick="createManualSchedule()">${text().addManual}</button>
+      </div></section>
+      <section class="panel"><h2>${text().workload}</h2>${workloadRows()}</section>
+      <section class="panel"><h2>${text().schedules}</h2>${scheduleRows(sortSchedules(filteredSchedules()).slice(0, 160))}</section>`;
+    }
     function syncManualTemplate() {
-      const template = state.templates.find((item) => field(item, "班次名称") === $("manualShift")?.value);
+      const template = state.templates.find((item) => field(item, F.template.name) === $("manualShift")?.value);
       if (!template) return;
-      $("manualStart").value = field(template, "开始时间") || $("manualStart").value;
-      $("manualEnd").value = field(template, "结束时间") || $("manualEnd").value;
+      $("manualStart").value = field(template, F.template.start) || $("manualStart").value;
+      $("manualEnd").value = field(template, F.template.end) || $("manualEnd").value;
     }
     function syncManualBrand() {
-      const brand = state.brands.find((item) => field(item, "品牌名") === $("manualBrand")?.value);
+      const brand = state.brands.find((item) => field(item, F.brand.name) === $("manualBrand")?.value);
       if (!brand) return;
-      $("manualRoom").value = field(brand, "直播间名称") || $("manualRoom").value;
-    }
-    function statusRank(status) {
-      return { "待处理":0, "缺人":1, "草稿":2, "已发布":3, "已确认":4, "已同意":5, "已拒绝":6, "停用":7, "正常":8 }[status] ?? 9;
-    }
-    function byStatusThenDate(a, b) {
-      const statusDiff = statusRank(field(a, "状态")) - statusRank(field(b, "状态"));
-      if (statusDiff) return statusDiff;
-      return `${field(b,"日期")} ${field(b,"开始时间")}`.localeCompare(`${field(a,"日期")} ${field(a,"开始时间")}`);
-    }
-    function badge(status) {
-      const cls = {
-        "待处理":"amber",
-        "草稿":"gray",
-        "已发布":"blue",
-        "已确认":"green",
-        "已同意":"green",
-        "已拒绝":"red",
-        "缺人":"red",
-        "停用":"red",
-        "正常":"green"
-      }[status] || "gray";
-      return `<span class="badge ${cls}">${status || "-"}</span>`;
+      $("manualRoom").value = field(brand, F.brand.room) || $("manualRoom").value;
     }
     function scheduleRows(records) {
-      if (!records.length) return `<p class="muted">${t().empty}</p>`;
-      const sortKeys = ["日期","班次","时间","主播姓名","品牌","直播间","状态"];
-      const labels = t().columns.schedule;
-      const heads = labels.map((label, index) => {
-        const key = sortKeys[index];
+      if (!records.length) return `<p class="muted">${text().empty}</p>`;
+      const columns = [
+        ["Date", F.schedule.date], ["Shift", F.schedule.shift], ["Time", "时间"], ["Host", F.schedule.host],
+        ["Brand", F.schedule.brand], ["Room", F.schedule.room], ["Status", F.schedule.status], ["Notes", ""]
+      ];
+      const heads = columns.map(([label, key]) => {
         if (!key) return `<th>${label}</th>`;
         const mark = state.scheduleSort.key === key ? (state.scheduleSort.dir === "asc" ? " ↑" : " ↓") : "";
         return `<th class="sortable" onclick="setScheduleSort('${key}')">${label}${mark}</th>`;
-      }).join("");
-      return `<div class="table-wrap"><table><thead><tr>${heads}</tr></thead><tbody>${records.map((r) => {
-        const status = field(r, "状态");
+      }).join("") + "<th>Actions</th>";
+      return `<div class="table-wrap"><table><thead><tr>${heads}</tr></thead><tbody>${records.map((record) => {
+        const status = field(record, F.schedule.status);
         return `<tr class="${["待处理","缺人","草稿"].includes(status) ? "pending-row" : ""}">
-          <td>${field(r,"日期")}</td><td>${field(r,"班次")}</td><td>${field(r,"开始时间")}-${field(r,"结束时间")}</td>
-          <td>${field(r,"主播姓名") || "-"}</td><td>${field(r,"品牌")}</td><td>${field(r,"直播间")}</td><td>${badge(status)}</td><td>${field(r,"备注")}</td>
-          <td><div class="actions">
-            ${status === "草稿" ? `<button onclick="setScheduleStatus('${r.record_id}','已发布')">${t().actions.publish}</button>` : ""}
-            ${status !== "已确认" ? `<button class="good" onclick="setScheduleStatus('${r.record_id}','已确认')">${t().actions.confirm}</button>` : ""}
-          </div></td>
+          <td>${escapeHtml(field(record, F.schedule.date))}</td><td>${escapeHtml(field(record, F.schedule.shift))}</td><td>${escapeHtml(scheduleTime(record))}</td>
+          <td>${escapeHtml(field(record, F.schedule.host) || "-")}</td><td>${escapeHtml(field(record, F.schedule.brand))}</td><td>${escapeHtml(field(record, F.schedule.room))}</td>
+          <td>${badge(status)}</td><td>${escapeHtml(field(record, F.schedule.note))}</td>
+          <td><div class="actions">${status === "草稿" ? `<button onclick="setScheduleStatus('${record.record_id}','已发布')">Publish</button>` : ""}${status !== "已确认" ? `<button class="good" onclick="setScheduleStatus('${record.record_id}','已确认')">Confirm</button>` : ""}</div></td>
         </tr>`;
       }).join("")}</tbody></table></div>`;
-    }
-    function declarationRows(records) {
-      if (!records.length) return `<p class="muted">${t().empty}</p>`;
-      return `<div class="table-wrap"><table><thead><tr>${t().columns.declaration.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${records.map((r) => {
-        const status = field(r, "状态");
-        return `<tr class="${status === "待处理" ? "pending-row" : ""}">
-          <td>${field(r,"主播姓名")}</td><td>${field(r,"申报类型")}</td><td>${field(r,"日期")}</td><td>${field(r,"开始时间")}-${field(r,"结束时间")}</td>
-          <td>${field(r,"原因")}</td><td>${badge(status)}</td>
-          <td><div class="actions">
-            ${status === "待处理" ? `<button class="good" onclick="setDeclarationStatus('${r.record_id}','已同意')">${t().actions.approve}</button><button class="danger" onclick="setDeclarationStatus('${r.record_id}','已拒绝')">${t().actions.reject}</button>` : ""}
-          </div></td>
-        </tr>`;
-      }).join("")}</tbody></table></div>`;
-    }
-    function renderDashboard() {
-      const pending = state.declarations.filter((r) => field(r, "状态") === "待处理");
-      const risk = state.schedules.filter((r) => !field(r, "主播姓名") || field(r, "状态") === "缺人");
-      const todayRows = state.schedules.filter((r) => field(r, "日期") === today()).slice(0, 8);
-      $("dashboardView").innerHTML = `
-        <section class="grid">
-          <div class="stat"><span class="muted">${t().stats[0]}</span><b>${state.anchors.length}</b></div>
-          <div class="stat"><span class="muted">${t().stats[1]}</span><b>${state.brands.length}</b></div>
-          <div class="stat"><span class="muted">${t().stats[2]}</span><b>${pending.length}</b></div>
-          <div class="stat"><span class="muted">${t().stats[3]}</span><b>${state.schedules.length}</b></div>
-        </section>
-        <section class="two">
-          <div class="panel"><h2>${t().tabDashboard}</h2><p class="muted">${t().dashboardHint}</p>${scheduleRows(todayRows)}</div>
-          <div class="panel"><h2>${t().risk}</h2>${scheduleRows(risk.slice(0, 8))}</div>
-        </section>`;
-    }
-    function renderCalendar() {
-      const start = new Date(`${$("startDate").value}T00:00:00`);
-      const days = Math.min(14, Math.max(1, Number($("days").value || 7)));
-      const rows = filteredSchedules();
-      const cells = [];
-      for (let i = 0; i < days; i += 1) {
-        const d = new Date(start);
-        d.setDate(start.getDate() + i);
-        const date = d.toISOString().slice(0, 10);
-        const shifts = rows.filter((r) => field(r, "日期") === date);
-        cells.push(`<div class="day"><h3><span>${date}</span><span class="badge blue">${shifts.length}</span></h3>${shifts.slice(0, 6).map((r) => `<div class="shift"><b>${field(r,"班次")}</b> ${field(r,"开始时间")}-${field(r,"结束时间")}<br>${field(r,"主播姓名") || "-"} · ${field(r,"品牌")}<br>${badge(field(r,"状态"))}</div>`).join("") || `<p class="muted small">${t().empty}</p>`}</div>`);
-      }
-      $("calendarView").innerHTML = `<section class="calendar">${cells.join("")}</section>`;
-    }
-    function renderSchedules() {
-      const anchorOptions = state.anchors
-        .filter((item) => field(item, "状态") !== "停用")
-        .map((item) => `<option value="${field(item, "姓名")}">${field(item, "姓名")} · ${field(item, "语言")} · ${field(item, "擅长类目")}</option>`)
-        .join("");
-      const brandOptions = state.brands
-        .filter((item) => field(item, "状态") !== "停用")
-        .map((item) => `<option value="${field(item, "品牌名")}">${field(item, "品牌名")} · ${field(item, "直播间名称")}</option>`)
-        .join("");
-      const templateOptions = state.templates
-        .filter((item) => field(item, "状态") !== "停用")
-        .map((item) => `<option value="${field(item, "班次名称")}">${field(item, "班次名称")} · ${field(item, "开始时间")}-${field(item, "结束时间")}</option>`)
-        .join("");
-      const firstTemplate = state.templates.find((item) => field(item, "状态") !== "停用") || {};
-      const firstBrand = state.brands.find((item) => field(item, "状态") !== "停用") || {};
-      $("schedulesView").innerHTML = `<section class="panel"><h2>${t().autoPanel}</h2><div class="toolbar">
-        <button class="primary" onclick="generateQuick(1)">${t().oneDay}</button>
-        <button onclick="generateQuick(7)">${t().oneWeek}</button>
-        <button onclick="generateQuick(14)">${t().twoWeeks}</button>
-        <button onclick="generateMonthSchedule()">${t().monthSchedule}</button>
-        <button onclick="loadWorkload()">${t().workload}</button>
-        <button onclick="generateWeeklyAudit()">${t().weeklyAudit}</button>
-        <button onclick="cleanupSchedules()">\u6e05\u7406\u91cd\u590d\u6392\u73ed</button>
-      </div></section>
-      <section class="panel"><h2>${t().manualPanel}</h2><div class="toolbar">
-        <label>${t().startDate}<input id="manualDate" type="date" value="${$("startDate").value || today()}"></label>
-        <label>${t().shift}<select id="manualShift" onchange="syncManualTemplate()">${templateOptions}</select></label>
-        <label>${t().startTime}<input id="manualStart" type="time" value="${field(firstTemplate, "开始时间") || "09:00"}"></label>
-        <label>${t().endTime}<input id="manualEnd" type="time" value="${field(firstTemplate, "结束时间") || "12:00"}"></label>
-        <label>${t().anchor}<select id="manualAnchor">${anchorOptions}</select></label>
-        <label>${t().brand}<select id="manualBrand" onchange="syncManualBrand()">${brandOptions}</select></label>
-        <label>${t().room}<input id="manualRoom" value="${field(firstBrand, "直播间名称")}"></label>
-        <label>${t().status}<select id="manualStatus"><option>草稿</option><option>已发布</option><option>已确认</option></select></label>
-        <label>${t().note}<input id="manualNote" value="主管手动指定"></label>
-        <button class="primary" onclick="createManualSchedule()">${t().manualCreate}</button>
-      </div></section>
-      <section class="panel"><h2>${t().workload}</h2>${workloadRows()}</section>
-      <section class="panel"><h2>${t().tabSchedules}</h2>${scheduleRows(sortSchedules(filteredSchedules()).slice(0, 160))}</section>`;
     }
     function workloadRows() {
-      if (!state.workload.length) return `<p class="muted">${t().empty}</p>`;
-      return `<div class="table-wrap"><table><thead><tr><th>主播</th><th>语言</th><th>等级</th><th>目标工时</th><th>已排工时</th><th>剩余/超出</th><th>场次</th></tr></thead><tbody>${state.workload.map((r) => `<tr class="${r.balanceHours < 0 ? "pending-row" : ""}"><td>${r.name}</td><td>${r.language}</td><td>${r.level}</td><td>${r.targetHours}</td><td>${r.scheduledHours}</td><td>${r.balanceHours}</td><td>${r.shifts}</td></tr>`).join("")}</tbody></table></div>`;
+      if (!state.workload.length) return `<p class="muted">${text().empty}</p>`;
+      return `<div class="table-wrap"><table><thead><tr><th>Host</th><th>Language</th><th>Level</th><th>Target</th><th>Scheduled</th><th>Balance</th><th>Shifts</th></tr></thead><tbody>${state.workload.map((row) => `<tr class="${row.balanceHours < 0 ? "pending-row" : ""}"><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.language)}</td><td>${escapeHtml(row.level)}</td><td>${row.targetHours}</td><td>${row.scheduledHours}</td><td>${row.balanceHours}</td><td>${row.shifts}</td></tr>`).join("")}</tbody></table></div>`;
     }
-    function renderDeclarations() {
-      $("declarationsView").innerHTML = `<section class="panel"><h2>${t().tabDeclarations}</h2>${declarationRows(state.declarations.slice().sort(byStatusThenDate).slice(0, 160))}</section>`;
+    function declarationRows(records) {
+      if (!records.length) return `<p class="muted">${text().empty}</p>`;
+      return `<div class="table-wrap"><table><thead><tr><th>Host</th><th>Type</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody>${records.map((record) => {
+        const status = field(record, F.declaration.status);
+        return `<tr class="${status === "待处理" ? "pending-row" : ""}">
+          <td>${escapeHtml(field(record, F.declaration.host))}</td><td>${escapeHtml(field(record, F.declaration.type))}</td><td>${escapeHtml(field(record, F.declaration.date))}</td><td>${escapeHtml(field(record, F.declaration.start))}-${escapeHtml(field(record, F.declaration.end))}</td>
+          <td>${escapeHtml(field(record, F.declaration.reason))}</td><td>${badge(status)}</td>
+          <td><div class="actions">${status === "待处理" ? `<button class="good" onclick="setDeclarationStatus('${record.record_id}','已同意')">Approve</button><button class="danger" onclick="setDeclarationStatus('${record.record_id}','已拒绝')">Reject</button>` : ""}</div></td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+    }
+    function parseSwapMeta(reason) {
+      const line = String(reason || "").split("\n").find((item) => item.startsWith("SWAP|"));
+      if (!line) return null;
+      const parts = line.split("|");
+      return { mode:parts[1] || "exchange", from:parts[2] || "", to:parts[3] || "", target:parts[4] || "" };
     }
     function renderSwaps() {
       const swaps = state.declarations
-        .filter((r) => field(r, "申报类型") === "换班")
-        .map((r) => ({ record:r, meta:parseSwapMeta(field(r, "原因")) }))
+        .map((record) => ({ record, meta:parseSwapMeta(field(record, F.declaration.reason)) }))
         .filter((item) => item.meta)
         .sort((a, b) => byStatusThenDate(a.record, b.record));
-      $("swapsView").innerHTML = `<section class="panel"><h2>${t().tabSwaps}</h2><p class="muted">${t().swapHint}</p>
-        <div class="table-wrap"><table><thead><tr><th>A</th><th>B</th><th>A 原班</th><th>B 原班</th><th>状态</th><th>操作</th></tr></thead><tbody>
-        ${swaps.map((item) => {
-          const from = state.schedules.find((r) => r.record_id === item.meta.from);
-          const to = state.schedules.find((r) => r.record_id === item.meta.to);
-          const status = field(item.record, "状态");
+      $("swapsView").innerHTML = `<section class="panel"><h2>${text().swaps}</h2>
+        <div class="table-wrap"><table><thead><tr><th>A</th><th>Target</th><th>Mode</th><th>A Shift</th><th>B Shift</th><th>Status</th><th>Actions</th></tr></thead><tbody>${swaps.map((item) => {
+          const from = state.schedules.find((record) => record.record_id === item.meta.from);
+          const to = state.schedules.find((record) => record.record_id === item.meta.to);
+          const status = field(item.record, F.declaration.status);
           return `<tr class="${status === "待处理" ? "pending-row" : ""}">
-            <td>${field(item.record, "主播姓名")}</td><td>${item.meta.target || field(to, "主播姓名")}</td>
-            <td>${scheduleLabel(from)}</td><td>${scheduleLabel(to)}</td><td>${badge(status)}</td>
-            <td><div class="actions">${status === "待处理" ? `<button class="good" onclick="completeSwap(${jsArg(item.record.record_id)},${jsArg(item.meta.target || field(to, "主播姓名"))})">${t().actions.forceComplete}</button><button class="danger" onclick="setDeclarationStatus(${jsArg(item.record.record_id)},'已拒绝')">${t().actions.reject}</button>` : ""}</div></td>
+            <td>${escapeHtml(field(item.record, F.declaration.host))}</td><td>${escapeHtml(item.meta.target || field(to, F.schedule.host))}</td><td>${escapeHtml(item.meta.mode)}</td>
+            <td>${escapeHtml(scheduleLabel(from))}</td><td>${escapeHtml(scheduleLabel(to))}</td><td>${badge(status)}</td>
+            <td><div class="actions">${status === "待处理" ? `<button class="good" onclick="completeSwap(${jsArg(item.record.record_id)},${jsArg(item.meta.target || field(to, F.schedule.host))})">Complete</button><button class="danger" onclick="rejectSwap(${jsArg(item.record.record_id)})">Reject</button>` : ""}</div></td>
           </tr>`;
-        }).join("") || `<tr><td colspan="6" class="muted">${t().empty}</td></tr>`}
-        </tbody></table></div></section>`;
+        }).join("") || `<tr><td colspan="7" class="muted">${text().empty}</td></tr>`}</tbody></table></div></section>`;
+    }
+    function renderDeclarations() {
+      $("declarationsView").innerHTML = `<section class="panel"><h2>${text().requests}</h2>${declarationRows(state.declarations.slice().sort(byStatusThenDate).slice(0, 160))}</section>`;
     }
     function renderAnchors() {
-      const rows = state.anchors;
-      if (!rows.length) return $("anchorsView").innerHTML = `<section class="panel"><p class="muted">${t().empty}</p></section>`;
-      $("anchorsView").innerHTML = `<section class="panel"><h2>${t().tabAnchors}</h2><div class="table-wrap"><table><thead><tr>${t().columns.anchor.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr><td>${field(r,"主播ID")}</td><td>${field(r,"姓名")}</td><td>${field(r,"语言")}</td><td>${field(r,"国家")}</td><td>${field(r,"时区")}</td><td>${field(r,"擅长类目")}</td><td>${field(r,"等级")}</td><td>${badge(field(r,"状态"))}</td></tr>`).join("")}</tbody></table></div></section>`;
+      if (!state.anchors.length) return $("anchorsView").innerHTML = `<section class="panel"><p class="muted">${text().empty}</p></section>`;
+      $("anchorsView").innerHTML = `<section class="panel"><h2>${text().hosts}</h2><div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Language</th><th>Country</th><th>TZ</th><th>Category</th><th>Level</th><th>Status</th></tr></thead><tbody>${state.anchors.map((record) => `<tr><td>${escapeHtml(field(record,F.host.id))}</td><td>${escapeHtml(field(record,F.host.name))}</td><td>${escapeHtml(field(record,F.host.language))}</td><td>${escapeHtml(field(record,F.host.country))}</td><td>${escapeHtml(field(record,F.host.timezone))}</td><td>${escapeHtml(field(record,F.host.category))}</td><td>${escapeHtml(field(record,F.host.level))}</td><td>${badge(field(record,F.host.status))}</td></tr>`).join("")}</tbody></table></div></section>`;
     }
     function render() {
       if (state.tab === "dashboard") renderDashboard();
@@ -587,6 +584,8 @@
       if (state.tab === "declarations") renderDeclarations();
       if (state.tab === "anchors") renderAnchors();
     }
+
+    $("startDate").value = today();
     setLang(currentLang);
     loadAll();
   </script>

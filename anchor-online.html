@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -159,7 +159,7 @@
         submitSwap:"Kirim permintaan tukar", incoming:"Permintaan untuk saya", outgoing:"Permintaan saya", availability:"Host tersedia cocok", accept:"Setujui tukar", reject:"Tolak", swapMode:"Mode tukar", exchange:"Tukar setara", cover:"Minta orang mengganti saya", coverAnchor:"Digantikan oleh", swapSent:"Permintaan tukar terkirim", swapDone:"Tukar shift selesai", selectCover:"Pilih sebagai pengganti"
       }
     };
-    let currentLang = localStorage.getItem("uiLang") || "zh";
+    let currentLang = localStorage.getItem("uiLang") || "en";
     $("anchorName").value = localStorage.getItem("anchorName") || "";
     $("availableDate").value = new Date().toISOString().slice(0,10);
 
@@ -218,7 +218,7 @@
     }
     async function anchorBootstrap() {
       try {
-        const data = await api("/api/anchor-bootstrap");
+        const data = await api("/api/bootstrap");
         if (!data.records.templates) {
           const templates = await api("/api/data?type=templates");
           data.records.templates = templates.records || [];

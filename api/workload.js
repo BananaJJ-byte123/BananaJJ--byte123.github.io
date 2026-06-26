@@ -30,9 +30,17 @@ module.exports = async function handler(req, res) {
     const url = new URL(req.url, "http://localhost");
     const month = url.searchParams.get("month") || new Date().toISOString().slice(0, 7);
     const [anchors, schedules] = await Promise.all([listRecords("anchors"), listRecords("schedules")]);
+    const schedulesByAnchor = new Map();
+    for (const item of schedules) {
+      if (!isActiveSchedule(item) || !val(item, F.scheduleDate).startsWith(month)) continue;
+      const name = val(item, F.scheduleAnchor);
+      if (!name) continue;
+      if (!schedulesByAnchor.has(name)) schedulesByAnchor.set(name, []);
+      schedulesByAnchor.get(name).push(item);
+    }
     const records = anchors.map((anchor) => {
       const name = val(anchor, F.name);
-      const ownSchedules = schedules.filter((item) => isActiveSchedule(item) && val(item, F.scheduleAnchor) === name && val(item, F.scheduleDate).startsWith(month));
+      const ownSchedules = schedulesByAnchor.get(name) || [];
       const actualHours = ownSchedules.reduce((sum, item) => sum + hours(item), 0);
       const targetHours = Number(val(anchor, F.target)) || 0;
       return {
@@ -42,8 +50,11 @@ module.exports = async function handler(req, res) {
         level: val(anchor, F.level),
         targetHours,
         actualHours,
+        scheduledHours: actualHours,
         gapHours: actualHours - targetHours,
-        shiftCount: ownSchedules.length
+        balanceHours: targetHours - actualHours,
+        shiftCount: ownSchedules.length,
+        shifts: ownSchedules.length
       };
     });
     json(res, 200, { ok: true, month, records });
