@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>海外主播排班助手</title>
+  <title>Host Scheduling Assistant</title>
   <style>
     :root {
       --bg: #f5f7fb;
@@ -13,7 +13,8 @@
       --blue: #2563eb;
       --green: #16845b;
       --card: #ffffff;
-      --shadow: 0 18px 44px rgba(16, 24, 40, .12);
+      --dark: #101828;
+      --shadow: 0 18px 44px rgba(16, 24, 40, .10);
     }
     * { box-sizing: border-box; }
     body {
@@ -24,7 +25,7 @@
       background: var(--bg);
     }
     header {
-      background: #101828;
+      background: var(--dark);
       color: #fff;
       padding: 18px 22px;
       display: flex;
@@ -32,26 +33,32 @@
       justify-content: space-between;
       gap: 16px;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .brand { display: flex; align-items: center; gap: 12px; }
     .logo {
       width: 40px;
       height: 40px;
       border-radius: 8px;
       background: #fff;
-      color: #101828;
+      color: var(--dark);
       display: grid;
       place-items: center;
       font-weight: 900;
     }
     h1, h2, p { margin-top: 0; }
-    h1 { font-size: 18px; margin-bottom: 3px; }
-    header p { color: #cbd5e1; margin-bottom: 0; font-size: 12px; }
+    h1 { font-size: 20px; margin-bottom: 3px; }
+    header p { color: #cbd5e1; margin-bottom: 0; font-size: 13px; }
+    select {
+      min-width: 150px;
+      border: 1px solid #344054;
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 700;
+    }
     main {
-      width: min(1080px, 100%);
+      width: min(1120px, 100%);
       margin: 0 auto;
       padding: 28px 18px;
     }
@@ -80,26 +87,10 @@
       align-content: space-between;
       gap: 16px;
     }
-    .card h2 {
-      font-size: 22px;
-      margin-bottom: 8px;
-    }
-    .card p {
-      color: var(--muted);
-      line-height: 1.65;
-      margin-bottom: 0;
-    }
-    ul {
-      margin: 12px 0 0;
-      padding-left: 18px;
-      color: var(--muted);
-      line-height: 1.8;
-    }
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    .card h2 { font-size: 22px; margin-bottom: 8px; }
+    .card p { color: var(--muted); line-height: 1.65; margin-bottom: 0; }
+    ul { margin: 12px 0 0; padding-left: 18px; color: var(--muted); line-height: 1.8; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
     a.button {
       display: inline-flex;
       align-items: center;
@@ -125,7 +116,8 @@
       line-height: 1.6;
     }
     @media (max-width: 760px) {
-      header { align-items: flex-start; }
+      header { align-items: flex-start; flex-direction: column; }
+      select { width: 100%; }
       .grid { grid-template-columns: 1fr; }
       .card { min-height: auto; }
     }
@@ -134,58 +126,150 @@
 <body>
   <header>
     <div class="brand">
-      <div class="logo">AS</div>
+      <div class="logo">HS</div>
       <div>
-        <h1>海外主播排班助手</h1>
-        <p>Feishu H5 + Feishu Base + Bot Notification</p>
+        <h1 data-i18n="appTitle">Host Scheduling Assistant</h1>
+        <p data-i18n="subtitle">Feishu Base + Vercel API + bot notifications</p>
       </div>
     </div>
+    <select id="lang" onchange="setLang(this.value)" aria-label="Language">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="id">Bahasa Indonesia</option>
+    </select>
   </header>
 
   <main>
-    <div class="notice">
-      当前推荐使用在线工作版：页面部署在 Vercel，数据写入飞书多维表格，关键动作通过飞书机器人通知。原本地演示版仍保留，方便你离线演示和对比。
+    <div class="notice" data-i18n="notice">
+      This is the online workspace version. Pages are deployed on Vercel, while schedule, host, room, and request data are read from and written to Feishu Base.
     </div>
 
     <section class="grid">
       <article class="card">
         <div>
-          <h2>主管 / 管理员入口</h2>
-          <p>用于排班员和管理员查看主播申报、生成排班、发布通知，并读取飞书多维表格中的共享数据。</p>
+          <h2 data-i18n="managerTitle">Manager Console</h2>
+          <p data-i18n="managerDesc">For supervisors to review requests, generate schedules, clean old records, and check monthly workload.</p>
           <ul>
-            <li>读取主播名单、品牌、班次模板</li>
-            <li>按日期生成排班结果</li>
-            <li>查看请假/换班/空闲申报</li>
-            <li>向飞书群发送通知</li>
+            <li data-i18n="managerLi1">Read hosts, livestream rooms, shift templates, and requests</li>
+            <li data-i18n="managerLi2">Generate schedules by date range or by a single day</li>
+            <li data-i18n="managerLi3">Create manual assignments for a selected host and room</li>
+            <li data-i18n="managerLi4">Track pending, approved, rejected, and historical records</li>
           </ul>
         </div>
         <div class="actions">
-          <a class="button" href="/manager">进入在线主管端</a>
-          <a class="button ghost" href="./manager.html">本地演示版</a>
+          <a class="button" href="/manager" data-i18n="managerBtn">Open Manager</a>
+          <a class="button ghost" href="/admin" data-i18n="adminBtn">Open Admin</a>
         </div>
       </article>
 
       <article class="card">
         <div>
-          <h2>主播入口</h2>
-          <p>用于主播在飞书内查看个人班表，实时提交请假、换班和空闲时间申报。</p>
+          <h2 data-i18n="hostTitle">Host Portal</h2>
+          <p data-i18n="hostDesc">For hosts to view their schedule, confirm shifts, submit swap requests, and add flexible availability.</p>
           <ul>
-            <li>提交申报后写入飞书多维表格</li>
-            <li>主管端实时可见</li>
-            <li>支持 English / Bahasa Indonesia 使用场景</li>
-            <li>适合放到飞书 H5 应用主页或群公告</li>
+            <li data-i18n="hostLi1">Search and select your own host name</li>
+            <li data-i18n="hostLi2">View personal upcoming schedule</li>
+            <li data-i18n="hostLi3">Request shift swaps or cover by another available host</li>
+            <li data-i18n="hostLi4">Add extra available time by date and shift slot</li>
           </ul>
         </div>
         <div class="actions">
-          <a class="button green" href="/anchor">进入在线主播端</a>
-          <a class="button ghost" href="./anchor.html">本地演示版</a>
+          <a class="button green" href="/anchor" data-i18n="hostBtn">Open Host Portal</a>
+          <a class="button ghost" href="/api/health" data-i18n="healthBtn">Check API</a>
         </div>
       </article>
     </section>
 
-    <p class="footer">
-      部署前需要在 Vercel 配置飞书自建应用密钥、多维表格 app_token、各数据表 table_id，以及可选的飞书机器人 webhook。
+    <p class="footer" data-i18n="footer">
+      Language selection is saved in this browser and shared by the home page, manager console, and host portal.
     </p>
   </main>
+
+  <script>
+    const i18n = {
+      en: {
+        appTitle: "Host Scheduling Assistant",
+        subtitle: "Feishu Base + Vercel API + bot notifications",
+        notice: "This is the online workspace version. Pages are deployed on Vercel, while schedule, host, room, and request data are read from and written to Feishu Base.",
+        managerTitle: "Manager Console",
+        managerDesc: "For supervisors to review requests, generate schedules, clean old records, and check monthly workload.",
+        managerLi1: "Read hosts, livestream rooms, shift templates, and requests",
+        managerLi2: "Generate schedules by date range or by a single day",
+        managerLi3: "Create manual assignments for a selected host and room",
+        managerLi4: "Track pending, approved, rejected, and historical records",
+        managerBtn: "Open Manager",
+        adminBtn: "Open Admin",
+        hostTitle: "Host Portal",
+        hostDesc: "For hosts to view their schedule, confirm shifts, submit swap requests, and add flexible availability.",
+        hostLi1: "Search and select your own host name",
+        hostLi2: "View personal upcoming schedule",
+        hostLi3: "Request shift swaps or cover by another available host",
+        hostLi4: "Add extra available time by date and shift slot",
+        hostBtn: "Open Host Portal",
+        healthBtn: "Check API",
+        footer: "Language selection is saved in this browser and shared by the home page, manager console, and host portal."
+      },
+      zh: {
+        appTitle: "主播自动排班助手",
+        subtitle: "飞书多维表格 + Vercel API + 机器人通知",
+        notice: "这是线上工作版。页面部署在 Vercel，主播、直播间、班次、申报和排班数据都会从飞书多维表格读取并写入。",
+        managerTitle: "主管端",
+        managerDesc: "给主管查看申报、生成排班、清理旧记录、检查月度累计工时使用。",
+        managerLi1: "读取主播、直播间、班次模板和申报",
+        managerLi2: "按日期范围或单日生成排班",
+        managerLi3: "手动指定某位主播到某个直播间上班",
+        managerLi4: "区分待处理、已同意、已拒绝和历史记录",
+        managerBtn: "打开主管端",
+        adminBtn: "打开系统管理员端",
+        hostTitle: "主播端",
+        hostDesc: "给主播查看自己的班表、确认班次、提交换班申请和追加空闲时间使用。",
+        hostLi1: "搜索并选择自己的主播姓名",
+        hostLi2: "查看个人近期排班",
+        hostLi3: "发起换班或请求空闲主播代班",
+        hostLi4: "按日期和班次追加灵活空闲时间",
+        hostBtn: "打开主播端",
+        healthBtn: "检查 API",
+        footer: "语言选择会保存在当前浏览器中，并同步用于首页、主管端和主播端。"
+      },
+      id: {
+        appTitle: "Asisten Penjadwalan Host",
+        subtitle: "Feishu Base + Vercel API + notifikasi bot",
+        notice: "Ini adalah versi kerja online. Halaman berjalan di Vercel, sedangkan data jadwal, host, ruang live, dan pengajuan dibaca dari serta ditulis ke Feishu Base.",
+        managerTitle: "Konsol Manager",
+        managerDesc: "Untuk supervisor meninjau pengajuan, membuat jadwal, membersihkan data lama, dan memeriksa jam kerja bulanan.",
+        managerLi1: "Membaca host, ruang live, template shift, dan pengajuan",
+        managerLi2: "Membuat jadwal berdasarkan rentang tanggal atau satu hari",
+        managerLi3: "Menetapkan host tertentu ke ruang live tertentu",
+        managerLi4: "Melihat status pending, disetujui, ditolak, dan historis",
+        managerBtn: "Buka Manager",
+        adminBtn: "Buka Admin",
+        hostTitle: "Portal Host",
+        hostDesc: "Untuk host melihat jadwal, mengonfirmasi shift, mengajukan tukar shift, dan menambahkan waktu kosong.",
+        hostLi1: "Cari dan pilih nama host sendiri",
+        hostLi2: "Lihat jadwal pribadi yang akan datang",
+        hostLi3: "Ajukan tukar shift atau minta host kosong sebagai pengganti",
+        hostLi4: "Tambahkan waktu kosong berdasarkan tanggal dan slot shift",
+        hostBtn: "Buka Portal Host",
+        healthBtn: "Cek API",
+        footer: "Pilihan bahasa disimpan di browser ini dan digunakan bersama oleh halaman utama, konsol manager, dan portal host."
+      }
+    };
+
+    let currentLang = localStorage.getItem("uiLang") || "en";
+
+    function setLang(lang) {
+      currentLang = i18n[lang] ? lang : "en";
+      localStorage.setItem("uiLang", currentLang);
+      document.getElementById("lang").value = currentLang;
+      document.documentElement.lang = currentLang === "zh" ? "zh-CN" : currentLang;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.dataset.i18n;
+        el.textContent = i18n[currentLang][key] || i18n.en[key] || "";
+      });
+      document.title = i18n[currentLang].appTitle;
+    }
+
+    setLang(currentLang);
+  </script>
 </body>
 </html>
