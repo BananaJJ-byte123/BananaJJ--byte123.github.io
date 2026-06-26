@@ -15,7 +15,8 @@ const F = {
   declarationStart: "\u5f00\u59cb\u65f6\u95f4", declarationEnd: "\u7ed3\u675f\u65f6\u95f4", originalShift: "\u539f\u73ed\u6b21", reason: "\u539f\u56e0", declarationStatus: "\u72b6\u6001",
   scheduleDate: "\u65e5\u671f", scheduleShift: "\u73ed\u6b21", scheduleStart: "\u5f00\u59cb\u65f6\u95f4", scheduleEnd: "\u7ed3\u675f\u65f6\u95f4", scheduleAnchor: "\u4e3b\u64ad\u59d3\u540d",
   scheduleBrand: "\u54c1\u724c", scheduleRoom: "\u76f4\u64ad\u95f4", scheduleStatus: "\u72b6\u6001", note: "\u5907\u6ce8",
-  anchorName: "\u59d3\u540d", anchorLanguage: "\u8bed\u8a00", anchorCategory: "\u64c5\u957f\u7c7b\u76ee", brandName: "\u54c1\u724c\u540d", brandCategory: "\u7c7b\u76ee", brandLanguage: "\u9700\u8981\u8bed\u8a00"
+  anchorName: "\u59d3\u540d", anchorLanguage: "\u8bed\u8a00", anchorCategory: "\u64c5\u957f\u7c7b\u76ee", maxDaily: "\u6bcf\u65e5\u6700\u591a\u573a\u6b21", anchorStatus: "\u72b6\u6001",
+  brandName: "\u54c1\u724c\u540d", brandCategory: "\u7c7b\u76ee", brandLanguage: "\u9700\u8981\u8bed\u8a00", brandRoom: "\u76f4\u64ad\u95f4\u540d\u79f0"
 };
 
 function val(record, key) {
@@ -38,6 +39,18 @@ function isActiveSchedule(schedule) {
   return !["\u5386\u53f2", "\u5df2\u53d6\u6d88"].includes(val(schedule, F.scheduleStatus));
 }
 
+function fail(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  throw error;
+}
+
+function overlaps(a, b) {
+  if (val(a, F.scheduleDate) !== val(b, F.scheduleDate)) return false;
+  return minutes(val(a, F.scheduleStart)) < minutes(val(b, F.scheduleEnd)) &&
+    minutes(val(a, F.scheduleEnd)) > minutes(val(b, F.scheduleStart));
+}
+
 function assertNotLocked(schedule) {
   const start = new Date(`${val(schedule, F.scheduleDate)}T${val(schedule, F.scheduleStart) || "00:00"}:00`);
   if (!Number.isNaN(start.getTime()) && start.getTime() - Date.now() < LOCK_WINDOW_HOURS * 3600 * 1000) {
@@ -49,6 +62,60 @@ function assertNotLocked(schedule) {
 
 function findById(records, id) {
   return records.find((item) => item.record_id === id);
+}
+
+function findAnchor(anchors, name) {
+  return anchors.find((item) => val(item, F.anchorName) === name && val(item, F.anchorStatus) !== "\u505c\u7528");
+}
+
+function findBrand(brands, schedule) {
+  return brands.find((item) =>
+    val(item, F.brandName) === val(schedule, F.scheduleBrand) &&
+    (!val(schedule, F.scheduleRoom) || !val(item, F.brandRoom) || val(item, F.brandRoom) === val(schedule, F.scheduleRoom))
+  ) || brands.find((item) => val(item, F.brandName) === val(schedule, F.scheduleBrand));
+}
+
+function assertAnchorFitsSchedule(anchorName, schedule, context) {
+  const anchor = findAnchor(context.anchors, anchorName);
+  if (!anchor) fail(`\u4e3b\u64ad\u4e0d\u5b58\u5728\u6216\u5df2\u505c\u7528\uff1a${anchorName}`);
+  const brand = findBrand(context.brands, schedule);
+  if (brand) {
+    const needLanguage = val(brand, F.brandLanguage);
+    if (needLanguage && val(anchor, F.anchorLanguage) !== needLanguage) {
+      fail(`\u8bed\u8a00\u4e0d\u5339\u914d\uff1a${anchorName} \u4e3a ${val(anchor, F.anchorLanguage)}\uff0c\u76f4\u64ad\u95f4\u9700\u8981 ${needLanguage}`);
+    }
+    const brandCategory = val(brand, F.brandCategory);
+    const anchorCategory = val(anchor, F.anchorCategory);
+    if (brandCategory && anchorCategory && !anchorCategory.includes(brandCategory)) {
+      fail(`\u7c7b\u76ee\u4e0d\u5339\u914d\uff1a${anchorName} \u64c5\u957f ${anchorCategory}\uff0c\u54c1\u724c\u7c7b\u76ee\u4e3a ${brandCategory}`);
+    }
+  }
+
+  const ignore = new Set(context.ignoreRecordIds || []);
+  const activeOwn = context.schedules.filter((item) =>
+    !ignore.has(item.record_id) &&
+    val(item, F.scheduleAnchor) === anchorName &&
+    val(item, F.scheduleDate) === val(schedule, F.scheduleDate)
+  );
+  const conflict = activeOwn.find((item) => overlaps(item, schedule));
+  if (conflict) {
+    fail(`\u65f6\u95f4\u51b2\u7a81\uff1a${anchorName} \u5df2\u6709 ${val(conflict, F.scheduleStart)}-${val(conflict, F.scheduleEnd)} \u73ed\u6b21`);
+  }
+  const maxDaily = Number(val(anchor, F.maxDaily)) || 2;
+  if (activeOwn.length >= maxDaily) {
+    fail(`\u8d85\u8fc7\u6bcf\u65e5\u6700\u591a\u573a\u6b21\uff1a${anchorName} \u5df2\u6709 ${activeOwn.length} \u573a\uff0c\u4e0a\u9650 ${maxDaily}`);
+  }
+}
+
+function findAvailability(declarations, anchorName, schedule) {
+  return declarations.find((item) =>
+    val(item, F.declarationType) === "\u7a7a\u95f2\u65f6\u95f4" &&
+    ["\u5f85\u5904\u7406", "\u53ef\u5339\u914d"].includes(val(item, F.declarationStatus)) &&
+    val(item, F.declarationAnchor) === anchorName &&
+    val(item, F.declarationDate) === val(schedule, F.scheduleDate) &&
+    val(item, F.declarationStart) === val(schedule, F.scheduleStart) &&
+    val(item, F.declarationEnd) === val(schedule, F.scheduleEnd)
+  );
 }
 
 function parseMeta(reason) {
@@ -63,7 +130,12 @@ function buildReason(mode, fromScheduleId, toScheduleId, targetAnchorName, reaso
 }
 
 async function requestSwap(body) {
-  const schedules = (await listRecords("schedules")).filter(isActiveSchedule);
+  const [schedulesRaw, anchors, brands] = await Promise.all([
+    listRecords("schedules"),
+    listRecords("anchors"),
+    listRecords("brands")
+  ]);
+  const schedules = schedulesRaw.filter(isActiveSchedule);
   const from = findById(schedules, body.fromScheduleId);
   const to = body.toScheduleId ? findById(schedules, body.toScheduleId) : null;
   if (!from) return { status: 400, payload: { ok: false, error: "Source schedule not found" } };
@@ -72,6 +144,12 @@ async function requestSwap(body) {
   const mode = body.mode || "exchange";
   const target = mode === "cover" ? body.targetAnchorName : (to ? val(to, F.scheduleAnchor) : body.targetAnchorName);
   if (!target) return { status: 400, payload: { ok: false, error: "Missing target anchor" } };
+  const context = { schedules, anchors, brands, ignoreRecordIds: [from.record_id, to && to.record_id].filter(Boolean) };
+  assertAnchorFitsSchedule(target, from, context);
+  if (mode === "exchange") {
+    if (!to) return { status: 400, payload: { ok: false, error: "Target schedule not found" } };
+    assertAnchorFitsSchedule(val(from, F.scheduleAnchor), to, context);
+  }
   const fields = {
     [F.declarationId]: `SW${Date.now()}`,
     [F.declarationAnchor]: body.anchorName,
@@ -90,7 +168,12 @@ async function requestSwap(body) {
 }
 
 async function acceptSwap(body) {
-  const [declarations, schedulesRaw] = await Promise.all([listRecords("declarations"), listRecords("schedules")]);
+  const [declarations, schedulesRaw, anchors, brands] = await Promise.all([
+    listRecords("declarations"),
+    listRecords("schedules"),
+    listRecords("anchors"),
+    listRecords("brands")
+  ]);
   const schedules = schedulesRaw.filter(isActiveSchedule);
   const declaration = findById(declarations, body.declarationRecordId);
   if (!declaration) return { status: 404, payload: { ok: false, error: "Swap request not found" } };
@@ -102,20 +185,35 @@ async function acceptSwap(body) {
   if (to) assertNotLocked(to);
   const fromAnchor = val(from, F.scheduleAnchor);
   const updates = [];
+  const declarationUpdates = [{ record_id: declaration.record_id, fields: { [F.declarationStatus]: "\u5df2\u540c\u610f" } }];
+  const context = { schedules, anchors, brands, ignoreRecordIds: [from.record_id, to && to.record_id].filter(Boolean) };
   if (meta.mode === "cover") {
     const coverAnchor = meta.target || body.anchorName;
+    assertAnchorFitsSchedule(coverAnchor, from, context);
+    const availability = findAvailability(declarations, coverAnchor, from);
+    if (availability) {
+      declarationUpdates.push({
+        record_id: availability.record_id,
+        fields: {
+          [F.declarationStatus]: "\u5df2\u540c\u610f",
+          [F.reason]: `${val(availability, F.reason) || ""}\n\u5df2\u7528\u4e8e\u4ee3\u73ed\uff1a${fromAnchor} -> ${coverAnchor}`.trim()
+        }
+      });
+    }
     updates.push({ record_id: from.record_id, fields: { [F.scheduleAnchor]: coverAnchor, [F.scheduleStatus]: "\u8349\u7a3f", [F.note]: `\u4ee3\u73ed\uff1a${fromAnchor} -> ${coverAnchor}` } });
   } else {
     if (!to) return { status: 400, payload: { ok: false, error: "Target schedule not found" } };
     const toAnchor = val(to, F.scheduleAnchor);
+    assertAnchorFitsSchedule(toAnchor, from, context);
+    assertAnchorFitsSchedule(fromAnchor, to, context);
     updates.push({ record_id: from.record_id, fields: { [F.scheduleAnchor]: toAnchor, [F.note]: `\u7b49\u4ef7\u4e92\u6362\uff1a${fromAnchor} <-> ${toAnchor}` } });
     updates.push({ record_id: to.record_id, fields: { [F.scheduleAnchor]: fromAnchor, [F.note]: `\u7b49\u4ef7\u4e92\u6362\uff1a${fromAnchor} <-> ${toAnchor}` } });
   }
   const updatedSchedules = await updateRecords("schedules", updates);
-  const updatedDeclaration = await updateRecords("declarations", [{ record_id: declaration.record_id, fields: { [F.declarationStatus]: "\u5df2\u540c\u610f" } }]);
+  const updatedDeclarations = await updateRecords("declarations", declarationUpdates);
   await audit("\u6362\u73ed\u5b8c\u6210", `record=${declaration.record_id}; mode=${meta.mode}`);
   await sendBotText(`\u3010\u6362\u73ed\u52a8\u6001\u3011${val(declaration, F.declarationAnchor)} \u7684\u6362\u73ed/\u4ee3\u73ed\u5df2\u5b8c\u6210\uff0c\u8bf7\u77e5\u6089\u3002`);
-  return { status: 200, payload: { ok: true, declaration: updatedDeclaration[0] || null, schedules: updatedSchedules } };
+  return { status: 200, payload: { ok: true, declaration: updatedDeclarations[0] || null, consumedAvailability: updatedDeclarations.slice(1), schedules: updatedSchedules } };
 }
 
 async function rejectSwap(body) {
